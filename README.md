@@ -8,8 +8,12 @@ This is a containerized ROS communication bridge for the F1TENTH gym environment
 - Ubuntu (tested on 20.04) native with ROS 2
 - Ubuntu (tested on 20.04) with an NVIDIA gpu and nvidia-docker2 support
 - Windows 10, macOS, and Ubuntu without an NVIDIA gpu (using noVNC)
+- Windows 10/11 over WSL2 without an NVIDIA gpu (using noVNC)
 
 This installation guide will be split into instruction for installing the ROS 2 package natively, and for systems with or without an NVIDIA gpu in Docker containers.
+
+If you are using a Windows system, you'll have to use WSL (Windows Subsystem for Linux). Please refer to the guide [here](https://learn.microsoft.com/en-us/windows/wsl/install) for WSL 2 installation and configuration.
+It is recommended to use Ubuntu 20.04 as the base OS for WSL 2 as well as the Windows terminal app (guid for setting up windows terminal can be found [here](https://www.ceos3c.com/wsl-2/windows-terminal-customization-wsl2/)).
 
 ## Native on Ubuntu 20.04
 
@@ -43,7 +47,7 @@ This installation guide will be split into instruction for installing the ROS 2 
 **Install the following dependencies:**
 
 - **Docker** Follow the instructions [here](https://docs.docker.com/install/linux/docker-ce/ubuntu/) to install Docker. A short tutorial can be found [here](https://docs.docker.com/get-started/) if you're not familiar with Docker. If you followed the post-installation steps you won't have to prepend your docker and docker-compose commands with sudo.
-- **nvidia-docker2**, follow the instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) if you have a support GPU. It is also possible to use Intel integrated graphics to forward the display, see details instructions from the Rocker repo. If you are on windows with an NVIDIA GPU, you'll have to use WSL (Windows Subsystem for Linux). Please refer to the guide [here](https://developer.nvidia.com/cuda/wsl), [here](https://docs.nvidia.com/cuda/wsl-user-guide/index.html), and [here](https://dilililabs.com/zh/blog/2021/01/26/deploying-docker-with-gpu-support-on-windows-subsystem-for-linux/).
+- **nvidia-docker2**, follow the instructions [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) if you have a support GPU. It is also possible to use Intel integrated graphics to forward the display, see details instructions from the Rocker repo. If you are on windows with an NVIDIA GPU, you'll have to use WSL (Windows Subsystem for Linux). Please refer to the guide [here (nvidia cuda driver)](https://developer.nvidia.com/cuda/wsl), [here (nvidia cuda driver install)](https://docs.nvidia.com/cuda/wsl-user-guide/index.html), and [here (activating cuda on wsl)](https://dilililabs.com/zh/blog/2021/01/26/deploying-docker-with-gpu-support-on-windows-subsystem-for-linux/).
 - **rocker** [https://github.com/osrf/rocker](https://github.com/osrf/rocker). This is a tool developed by OSRF to run Docker images with local support injected. We use it for GUI forwarding. If you're on Windows, WSL should also support this.
 
 **Installing the simulation:**
@@ -74,6 +78,10 @@ If your system does not support nvidia-docker2, noVNC will have to be used to fo
 ```bash
 docker-compose up
 ``` 
+or 
+```bash
+docker compose up
+```
 3. In a separate terminal, run the following, and you'll have the a bash session in the simulation container. `tmux` is available for convenience.
 ```bash
 docker exec -it f1tenth_gym_ros-sim-1 /bin/bash
@@ -85,13 +93,14 @@ docker exec -it f1tenth_gym_ros-sim-1 /bin/bash
 1. `tmux` is included in the contianer, so you can create multiple bash sessions in the same terminal.
 2. To launch the simulation, make sure you source both the ROS2 setup script and the local workspace setup script. Run the following in the bash session from the container:
 ```bash
-$ source /opt/ros/foxy/setup.bash
-$ source install/local_setup.bash
+$ source install/setup.bash
 $ ros2 launch f1tenth_gym_ros gym_bridge_launch.py
 ```
 A rviz window should pop up showing the simulation either on your host system or in the browser window depending on the display forwarding you chose.
 
-You can then run another node by creating another bash session in `tmux`.
+You can then run another node by creating another bash session in either:
+- `tmux` in the container
+- a new terminal on the host system (if you are using WSL and Windows terminal this can be done by either opening a new tab or splitting the current terminal) and connecting to the same container with the `docker exec` command from above.
 
 # Configuring the simulation
 - The configuration file for the simulation is at `f1tenth_gym_ros/config/sim.yaml`.
@@ -128,21 +137,11 @@ In addition to the topics available in the single agent scenario, these topics a
 
 # Topics subscribed by the simulation
 
-In **single** agent:
-
 `/drive`: The ego agent's drive command via `AckermannDriveStamped` messages
 
 `/initalpose`: This is the topic for resetting the ego's pose via RViz's 2D Pose Estimate tool. Do **NOT** publish directly to this topic unless you know what you're doing.
 
 TODO: kb teleop topics
-
-In **two** agents:
-
-In addition to all topics in the single agent scenario, these topics are also available:
-
-`/opp_drive`: The opponent agent's drive command via `AckermannDriveStamped` messages
-
-`/goal_pose`: This is the topic for resetting the opponent agent's pose via RViz's 2D Goal Pose tool. Do **NOT** publish directly to this topic unless you know what you're doing.
 
 # Keyboard Teleop
 
@@ -154,7 +153,4 @@ Then, press `i` to move forward, `u` and `o` to move forward and turn, `,` to mo
 
 # Developing and creating your own agent in ROS 2
 
-There are multiple ways to launch your own agent to control the vehicles.
-
-- The first one is creating a new package for your agent in the `/sim_ws` workspace inside the sim container. After launch the simulation, launch the agent node in another bash session while the sim is running.
-- The second one is to create a new ROS 2 container for you agent node. Then create your own package and nodes inside. Launch the sim container and the agent container both. With default networking configurations for `docker`, the behavior is to put The two containers on the same network, and they should be able to discover and talk to each other on different topics. If you're using noVNC, create a new service in `docker-compose.yml` for your agent node. You'll also have to put your container on the same network as the sim and novnc containers.
+Create a new package for your agent in the `/sim_ws` workspace inside the sim container. After launch the simulation, launch the agent node in another bash session while the sim is running.

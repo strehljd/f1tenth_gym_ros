@@ -49,6 +49,7 @@ RUN source /opt/ros/foxy/setup.bash && \
     apt-get update --fix-missing && \
     rosdep install -i --from-path src --rosdistro foxy -y && \
     colcon build
+RUN echo 'source /opt/ros/foxy/setup.bash' >> ~/.bashrc
 
 WORKDIR '/sim_ws'
 ENTRYPOINT ["/bin/bash"]
