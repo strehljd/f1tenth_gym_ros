@@ -72,6 +72,7 @@ If your system does not support nvidia-docker2, noVNC will have to be used to fo
 - Additionally you'll need **docker-compose**. Follow the instruction [here](https://docs.docker.com/compose/install/) to install docker-compose.
 
 If you are installing over Windows or WSL simply install the Docker Windows desktop app in order to install both of the above dependencies, [here](https://docs.docker.com/desktop/install/windows-install/) are the instructions.
+
 Follow the instructions [here](https://docs.docker.com/desktop/windows/wsl/) in order to integrate Docker into WSL, as well as making sure that the Ubuntu distribution you are working with on WSL is enabled in the docker desktop app in settings->resources->WSL integration
 
 **Installing the simulation:**
