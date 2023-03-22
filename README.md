@@ -8,7 +8,7 @@ This is a containerized ROS communication bridge for the F1TENTH gym environment
 - Ubuntu (tested on 20.04) native with ROS 2
 - Ubuntu (tested on 20.04) with an NVIDIA gpu and nvidia-docker2 support
 - Windows 10, macOS, and Ubuntu without an NVIDIA gpu (using noVNC)
-- Windows 10/11 over WSL2 without an NVIDIA gpu (using noVNC)
+- Windows 10/11 over WSL2 without an NVIDIA gpu (using noVNC) - jump to Without Nvidia GPU section
 
 This installation guide will be split into instruction for installing the ROS 2 package natively, and for systems with or without an NVIDIA gpu in Docker containers.
 
@@ -70,6 +70,9 @@ $ rocker --nvidia --x11 --volume .:/sim_ws/src/f1tenth_gym_ros -- f1tenth_gym_ro
 If your system does not support nvidia-docker2, noVNC will have to be used to forward the display.
 - Again you'll need **Docker**. Follow the instruction from above.
 - Additionally you'll need **docker-compose**. Follow the instruction [here](https://docs.docker.com/compose/install/) to install docker-compose.
+
+If you are installing over Windows or WSL simply install the Docker Windows desktop app in order to install both of the above dependencies, [here](https://docs.docker.com/desktop/install/windows-install/) are the instructions.
+Follow the instructions [here](https://docs.docker.com/desktop/windows/wsl/) in order to integrate Docker into WSL, as well as making sure that the Ubuntu distribution you are working with on WSL is enabled in the docker desktop app in settings->resources->WSL integration
 
 **Installing the simulation:**
 
