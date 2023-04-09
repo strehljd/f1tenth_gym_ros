@@ -45,10 +45,32 @@ class Lab1(Node):
         
         # create a timer to publish the control input every 20ms
         self.get_logger().info("Creating Timer")
-        self.timer = self.create_timer(0.02, self.timer_callback)
+        self.timer = self.create_timer(0.005, self.timer_callback)
         self.timer # prevent unused variable warning
         
+        self.cross_track_accumulated_error = 0
+        self.along_track_accumulated_error = 0
+        self.waypoint_index = 0
+    
+    def get_timed_waypoint(self):
+        # get the next waypoint in the reference trajectory based on the current time
+        waypoint = self.ref_traj[self.waypoint_index]
+        self.waypoint_index += 1
+        return waypoint
 
+    def log_accumulated_error(self):
+        timed_waypoint = self.get_timed_waypoint()
+        
+        cross_track_error = np.abs(timed_waypoint[0] - self.pose[0])
+        along_track_error = np.abs(timed_waypoint[1] - self.pose[1])
+        
+        # log the accumulated error to screen and internally to be printed at the end of the run
+        self.get_logger().info("Cross Track Error: " + str(cross_track_error))
+        self.get_logger().info("Along Track Error: " + str(along_track_error))
+        self.cross_track_accumulated_error += cross_track_error
+        self.along_track_accumulated_error += along_track_error
+        
+    
     def odom_callback(self, msg):
         # get the current pose
         x = msg.pose.pose.position.x
