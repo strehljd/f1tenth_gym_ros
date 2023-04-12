@@ -1,5 +1,6 @@
 import rclpy
 from rclpy.node import Node
+import sys
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -51,24 +52,26 @@ class Lab1(Node):
         self.cross_track_accumulated_error = 0
         self.along_track_accumulated_error = 0
         self.waypoint_index = 0
+        
+        self.moved = False
     
-    def get_timed_waypoint(self):
+    def get_ref_pos(self):
         # get the next waypoint in the reference trajectory based on the current time
         waypoint = self.ref_traj[self.waypoint_index % len(self.ref_traj)]
         self.waypoint_index += 1
         return waypoint
 
     def log_accumulated_error(self):
-        timed_waypoint = self.get_timed_waypoint()
+        ref_pos = self.get_ref_pos()
         
         # compute the cross track and along track error depending on the current pose and the next waypoint
         # if the ref point is at the top or bottom of the track, the cross track error is the y distance
-        if timed_waypoint[1] == 9.5 or timed_waypoint[1] == -13.5:
-            cross_track_error = np.abs(timed_waypoint[1] - self.pose[1])
-            along_track_error = np.abs(timed_waypoint[0] - self.pose[0])
+        if ref_pos[1] == 9.5 or ref_pos[1] == -13.5:
+            cross_track_error = np.abs(ref_pos[1] - self.pose[1])
+            along_track_error = np.abs(ref_pos[0] - self.pose[0])
         else:
-            cross_track_error = np.abs(timed_waypoint[0] - self.pose[0])
-            along_track_error = np.abs(timed_waypoint[1] - self.pose[1])
+            cross_track_error = np.abs(ref_pos[0] - self.pose[0])
+            along_track_error = np.abs(ref_pos[1] - self.pose[1])
         
         # log the accumulated error to screen and internally to be printed at the end of the run
         self.get_logger().info("Cross Track Error: " + str(cross_track_error))
@@ -76,7 +79,6 @@ class Lab1(Node):
         self.cross_track_accumulated_error += cross_track_error
         self.along_track_accumulated_error += along_track_error
         
-    
     def odom_callback(self, msg):
         # get the current pose
         x = msg.pose.pose.position.x
@@ -84,11 +86,21 @@ class Lab1(Node):
         q = msg.pose.pose.orientation
         _, _, yaw = euler.quat2euler([q.x, q.y, q.z, q.w])
         
+        if not self.moved and (x < -1 or y > 3):
+            self.moved = True
+        if self.moved and x > 0:
+            raise SystemExit
+            
+        
         self.pose = np.array([x, y, yaw])
         
     def timer_callback(self):
+        self.log_accumulated_error()
+        
         # compute the control input
-        if self.controller == "pid":
+        if self.controller == "pid_unicycle":
+            u = self.pid_unicycle_control(self.pose)
+        elif self.controller == "pid":
             u = self.pid_control(self.pose)
         elif self.controller == "pure_pursuit":
             u = self.pure_pursuit_control(self.pose)
@@ -109,57 +121,69 @@ class Lab1(Node):
         self.cmd_pub.publish(cmd)
 
     def pid_control(self, pose):
-        raise NotImplementedError
         #### YOUR CODE HERE ####
         
         
         # return np.array([steering_angle, speed])
-
         #### END OF YOUR CODE ####
+        raise NotImplementedError
+    
+    def pid_unicycle_control(self, pose):
+        #### YOUR CODE HERE ####
+        
+        
+        # return np.array([steering_angle, speed])
+        #### END OF YOUR CODE ####
+        raise NotImplementedError
     
     def pure_pursuit_control(self, pose):
-        raise NotImplementedError
         #### YOUR CODE HERE ####
         
         
         # return np.array([steering_angle, speed])
-
         #### END OF YOUR CODE ####
+        raise NotImplementedError
         
     def ilqr_control(self, pose):
-        raise NotImplementedError
         #### YOUR CODE HERE ####
         
         
         # return np.array([steering_angle, speed])
-
         #### END OF YOUR CODE ####
+        raise NotImplementedError
         
     def optimal_control(self, pose):
-        raise NotImplementedError
         #### YOUR CODE HERE ####
         
         
         # return np.array([steering_angle, speed])
-
         #### END OF YOUR CODE ####
+        raise NotImplementedError
         
 def main(args=None):
     rclpy.init(controller_type=args)
 
     lab1 = Lab1()
 
-    rclpy.spin(lab1)
+    tick = 
+    try:
+        rclpy.spin(lab1)
+    except NotImplementedError:
+        rclpy.logging.get_logger('lab1').info("You havn't implemented this controller yet!")
+    except:
+        rclpy.logging.get_logger('lab1').info("Finished lap")
+        rclpy.logging.get_logger('lab1').info("Cross Track Error: " + str(lab1.cross_track_accumulated_error))
+        rclpy.logging.get_logger('lab1').info("Along Track Error: " + str(lab1.along_track_accumulated_error))
+        print("Cross Track Error: " + str(lab1.cross_track_accumulated_error))
+        print("Along Track Error: " + str(lab1.along_track_accumulated_error))
 
     lab1.destroy_node()
     rclpy.shutdown()
     
     
 if __name__ == '__main__':
-    main('pid')
-    # main('pure_pursuit')
-    # main('ilqr')
-    # main('optimal')
+    controller_type = sys.argv[1]
+    main(controller_type)
     
     
         
