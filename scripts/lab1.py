@@ -65,14 +65,14 @@ class Lab1(Node):
     def log_accumulated_error(self):
         ref_pos = self.get_ref_pos()
         
+        cross_track_error = 0
+        along_track_error = 0
         # compute the cross track and along track error depending on the current pose and the next waypoint
-        # if the ref point is at the top or bottom of the track, the cross track error is the y distance
-        if ref_pos[1] == 9.5 or ref_pos[1] == -13.5:
-            cross_track_error = np.abs(ref_pos[1] - self.pose[1])
-            along_track_error = np.abs(ref_pos[0] - self.pose[0])
-        else:
-            cross_track_error = np.abs(ref_pos[0] - self.pose[0])
-            along_track_error = np.abs(ref_pos[1] - self.pose[1])
+        #### YOUR CODE HERE ####
+        
+        
+        
+        #### END OF YOUR CODE ####
         
         # log the accumulated error to screen and internally to be printed at the end of the run
         self.get_logger().info("Cross Track Error: " + str(cross_track_error))
