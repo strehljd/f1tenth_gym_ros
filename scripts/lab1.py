@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import sys
+import time
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -165,17 +166,20 @@ def main(args=None):
 
     lab1 = Lab1()
 
-    tick = 
+    tick = time.time().to_sec()
     try:
         rclpy.spin(lab1)
     except NotImplementedError:
         rclpy.logging.get_logger('lab1').info("You havn't implemented this controller yet!")
     except:
+        tock = time.time().to_sec()
         rclpy.logging.get_logger('lab1').info("Finished lap")
         rclpy.logging.get_logger('lab1').info("Cross Track Error: " + str(lab1.cross_track_accumulated_error))
         rclpy.logging.get_logger('lab1').info("Along Track Error: " + str(lab1.along_track_accumulated_error))
+        rclpy.logging.get_logger('lab1').info("Lap Time: " + str(tock - tick))
         print("Cross Track Error: " + str(lab1.cross_track_accumulated_error))
         print("Along Track Error: " + str(lab1.along_track_accumulated_error))
+        print("Lap Time: " + str(tock - tick))
 
     lab1.destroy_node()
     rclpy.shutdown()
