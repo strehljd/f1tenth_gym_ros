@@ -54,15 +54,21 @@ class Lab1(Node):
     
     def get_timed_waypoint(self):
         # get the next waypoint in the reference trajectory based on the current time
-        waypoint = self.ref_traj[self.waypoint_index]
+        waypoint = self.ref_traj[self.waypoint_index % len(self.ref_traj)]
         self.waypoint_index += 1
         return waypoint
 
     def log_accumulated_error(self):
         timed_waypoint = self.get_timed_waypoint()
         
-        cross_track_error = np.abs(timed_waypoint[0] - self.pose[0])
-        along_track_error = np.abs(timed_waypoint[1] - self.pose[1])
+        # compute the cross track and along track error depending on the current pose and the next waypoint
+        # if the ref point is at the top or bottom of the track, the cross track error is the y distance
+        if timed_waypoint[1] == 9.5 or timed_waypoint[1] == -13.5:
+            cross_track_error = np.abs(timed_waypoint[1] - self.pose[1])
+            along_track_error = np.abs(timed_waypoint[0] - self.pose[0])
+        else:
+            cross_track_error = np.abs(timed_waypoint[0] - self.pose[0])
+            along_track_error = np.abs(timed_waypoint[1] - self.pose[1])
         
         # log the accumulated error to screen and internally to be printed at the end of the run
         self.get_logger().info("Cross Track Error: " + str(cross_track_error))
