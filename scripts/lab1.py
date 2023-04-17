@@ -50,6 +50,8 @@ class Lab1(Node):
         self.timer = self.create_timer(0.005, self.timer_callback)
         self.timer # prevent unused variable warning
         
+        self.current_cross_track_error = 0
+        self.current_along_track_error = 0
         self.cross_track_accumulated_error = 0
         self.along_track_accumulated_error = 0
         self.waypoint_index = 0
@@ -73,6 +75,8 @@ class Lab1(Node):
         
         
         #### END OF YOUR CODE ####
+        self.current_cross_track_error = cross_track_error
+        self.current_along_track_error = along_track_error
         
         # log the accumulated error to screen and internally to be printed at the end of the run
         self.get_logger().info("Cross Track Error: " + str(cross_track_error))
