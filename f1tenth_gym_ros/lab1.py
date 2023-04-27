@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 import sys
 import time
+import os
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -12,6 +13,8 @@ from geometry_msgs.msg import Transform
 from geometry_msgs.msg import Quaternion
 from ackermann_msgs.msg import AckermannDriveStamped
 from tf2_ros import TransformBroadcaster
+
+from ament_index_python.packages import get_package_share_directory
 
 import gym
 import numpy as np
@@ -42,13 +45,17 @@ class Lab1(Node):
         
         # get the reference trajectory
         self.get_logger().info("Loading Reference Trajectory")
-        self.ref_traj = np.load('scripts/ref_traj.npy')
+        self.ref_traj = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
+                                            'resource',
+                                            'ref_traj.npy'))
         self.ref_traj # prevent unused variable warning
         
         # create a timer to publish the control input every 20ms
         self.get_logger().info("Creating Timer")
         self.timer = self.create_timer(0.005, self.timer_callback)
         self.timer # prevent unused variable warning
+        
+        self.pose = np.zeros(3)
         
         self.current_cross_track_error = 0
         self.current_along_track_error = 0
@@ -89,12 +96,12 @@ class Lab1(Node):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
         q = msg.pose.pose.orientation
-        _, _, yaw = euler.quat2euler([q.x, q.y, q.z, q.w])
+        _, _, yaw = euler.quat2euler([q.w, q.x, q.y, q.z])
         
         if not self.moved and (x < -1 or y > 3):
             self.moved = True
-        if self.moved and x > 0:
-            raise SystemExit
+        elif self.moved and x > 0:
+            raise EndLap
             
         
         self.pose = np.array([x, y, yaw])
@@ -165,18 +172,24 @@ class Lab1(Node):
         #### END OF YOUR CODE ####
         raise NotImplementedError
         
+
+class EndLap(Exception):
+    # this exception is raised when the car crosses the finish line
+    pass
+
+
 def main(args=None):
-    rclpy.init(controller_type=args)
+    rclpy.init()
 
-    lab1 = Lab1()
+    lab1 = Lab1(controller_type=sys.argv[1])
 
-    tick = time.time().to_sec()
+    tick = time.time()
     try:
         rclpy.spin(lab1)
     except NotImplementedError:
         rclpy.logging.get_logger('lab1').info("You havn't implemented this controller yet!")
-    except:
-        tock = time.time().to_sec()
+    except EndLap:
+        tock = time.time()
         rclpy.logging.get_logger('lab1').info("Finished lap")
         rclpy.logging.get_logger('lab1').info("Cross Track Error: " + str(lab1.cross_track_accumulated_error))
         rclpy.logging.get_logger('lab1').info("Along Track Error: " + str(lab1.along_track_accumulated_error))
