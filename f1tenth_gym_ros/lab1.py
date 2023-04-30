@@ -98,7 +98,7 @@ class Lab1(Node):
         q = msg.pose.pose.orientation
         _, _, yaw = euler.quat2euler([q.w, q.x, q.y, q.z])
         
-        if not self.moved and (x < -1 or y > 3):
+        if not self.moved and (x < -1 and y > 3):
             self.moved = True
         elif self.moved and x > 0:
             raise EndLap
