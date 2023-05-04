@@ -87,16 +87,15 @@ class Lab1(Node):
         a = next_wp - current_wp # tanget from current_wp to next_wp
         b = np.array([1, 0]) # x-axis as we defined theta to be zero when collinear with x-axis
 
-        theta_ref = np.dot(a,b)/np.abs(a)*np.abs(b)
-       
+        theta_ref = np.arccos(np.dot(a,b)/np.linalg.norm(a)*np.linalg.norm(b))
 
         # Compute errors acoording to lecture formula       
         #e_ct = -sin(theta_ref)* (x_ref) - x)* + cos(theta_ref)* (y-y_ref)
-        cross_track_error = -np.sin(theta_ref[0]) * (self.pose[0]-ref_pos[0]) +  np.cos(theta_ref[0])*((self.pose[1]-ref_pos[1]))
+        cross_track_error = -np.sin(theta_ref) * (self.pose[0]-ref_pos[0]) +  np.cos(theta_ref)*((self.pose[1]-ref_pos[1]))
         
         # e_at = -cos(theta_ref)*(x-x_ref) + sin(theta_ref)*(y-y_ref)
-        along_track_error = np.cos(theta_ref[0])*(self.pose[0]-ref_pos[0]) +  np.sin(theta_ref[0])*((self.pose[1]-ref_pos[1]))
-
+        along_track_error = np.cos(theta_ref)*(self.pose[0]-ref_pos[0]) +  np.sin(theta_ref)*((self.pose[1]-ref_pos[1]))
+        
         #### END OF YOUR CODE ####
         self.current_cross_track_error = cross_track_error
         self.current_along_track_error = along_track_error
