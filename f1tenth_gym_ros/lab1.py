@@ -52,7 +52,7 @@ class Lab1(Node):
         
         # create a timer to publish the control input every 20ms
         self.get_logger().info("Creating Timer")
-        self.timer = self.create_timer(0.005, self.timer_callback)
+        self.timer = self.create_timer(0.5, self.timer_callback)
         self.timer # prevent unused variable warning
         
         self.pose = np.zeros(3)
