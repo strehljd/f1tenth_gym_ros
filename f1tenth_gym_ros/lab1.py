@@ -84,10 +84,7 @@ class Lab1(Node):
         current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
         next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
 
-        a = next_wp - current_wp # tanget from current_wp to next_wp
-        b = np.array([1, 0]) # x-axis as we defined theta to be zero when collinear with x-axis
-
-        theta_ref = np.arccos(np.dot(a,b)/np.linalg.norm(a)*np.linalg.norm(b))
+        theta_ref = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
 
         # Compute errors acoording to lecture formula       
         #e_ct = -sin(theta_ref)* (x_ref) - x)* + cos(theta_ref)* (y-y_ref)
