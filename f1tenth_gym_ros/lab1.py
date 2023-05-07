@@ -62,7 +62,12 @@ class Lab1(Node):
         self.cross_track_accumulated_error = 0
         self.along_track_accumulated_error = 0
         self.waypoint_index = 0
-        
+
+        self.previous_cross_track_error = 0
+        self.previous_along_track_error= 0
+        self.integral_along_track_error = 0
+        self.integral_cross_track_error = 0
+    
         self.moved = False
     
     def get_ref_pos(self):
@@ -146,9 +151,50 @@ class Lab1(Node):
 
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
+        # Here two PID controllers are used. The first controls the speed based on the along_track error. The second controls the steering_angle based on the cross_treack error.
+
+
+        d_t = 0.5
+        # Speed-Controller
+        ## PID parameters
+        K_s = 0.5
+        K_ps = 0.6 * K_s
+        K_is = 0.075 * K_s
+        K_ds = 0.5 * K_s
+
+        P_s = K_ps * self.current_along_track_error
+        I_s = self.integral_along_track_error + K_is*self.current_along_track_error*d_t
+        D_s = K_ds * (self.current_along_track_error - self.previous_along_track_error)/d_t
+
+        u_s = -(P_s + I_s + D_s)
+
+        self.previous_along_track_error = self.current_along_track_error
+        self.integral_along_track_error =+ I_s
+
+
+        # Angle-Controller
+        ## PID parameters
+        K_a = 5
+        K_pa = 0.25 * K_a
+        K_ia = 0.0075 * K_a
+        K_da = 1.5 * K_a
+
+        P_a = K_pa * self.current_cross_track_error
+        I_a = self.integral_cross_track_error + K_ia * self.current_cross_track_error*d_t
+        D_a = K_da * (self.current_cross_track_error - self.previous_cross_track_error)/d_t
+    
+        u_a = -(P_a + I_a + D_a)
+
+        self.previous_cross_track_error = self.current_cross_track_error
+        self.integral_cross_track_error =+ I_a
+
+        # Set control output
+        steering_angle = u_a
+        speed = u_s
+
+        self.get_logger().info("angle: " + str(steering_angle))
         
-        
-        # return np.array([steering_angle, speed])
+        return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
     
