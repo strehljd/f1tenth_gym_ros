@@ -91,11 +91,11 @@ class Lab1(Node):
 
         # Compute errors acoording to lecture formula       
         #e_ct = -sin(theta_ref)* (x_ref) - x)* + cos(theta_ref)* (y-y_ref)
-        cross_track_error = -np.sin(theta_ref) * (self.pose[0]-ref_pos[0]) +  np.cos(theta_ref)*((self.pose[1]-ref_pos[1]))
+        cross_track_error = -np.sin(theta_ref) * (self.pose[0]-current_wp[0]) + np.cos(theta_ref)*((self.pose[1]-current_wp[1]))
         
         # e_at = -cos(theta_ref)*(x-x_ref) + sin(theta_ref)*(y-y_ref)
-        along_track_error = np.cos(theta_ref)*(self.pose[0]-ref_pos[0]) +  np.sin(theta_ref)*((self.pose[1]-ref_pos[1]))
-        
+        along_track_error = np.cos(theta_ref)*(self.pose[0]-current_wp[0]) +  np.sin(theta_ref)*((self.pose[1]-current_wp[1]))
+
         #### END OF YOUR CODE ####
         self.current_cross_track_error = cross_track_error
         self.current_along_track_error = along_track_error
