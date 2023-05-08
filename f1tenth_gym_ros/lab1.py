@@ -63,10 +63,14 @@ class Lab1(Node):
         self.along_track_accumulated_error = 0
         self.waypoint_index = 0
 
+        # Historians for PID-controllers
         self.previous_cross_track_error = 0
         self.previous_along_track_error= 0
         self.integral_along_track_error = 0
         self.integral_cross_track_error = 0
+
+        self.integral_e_theta = 0
+        self.previous_e_theta = 0
     
         self.moved = False
     
@@ -200,9 +204,62 @@ class Lab1(Node):
     
     def pid_unicycle_control(self, pose):
         #### YOUR CODE HERE ####
-        
-        
-        # return np.array([steering_angle, speed])
+        #param
+        d_t = 0.5
+
+        # Get reference trajectory
+        wp_number = self.waypoint_index; 
+        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
+        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
+
+        # Compute reference theta
+        theta_r = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
+
+        # Transform waypoints into robot frame
+        R = np.array([[np.cos(theta_r), -np.sin(theta_r)], [np.sin(theta_r), np.cos(theta_r)]])
+        current_wp = np.matmul(R,current_wp)
+        next_wp = np.matmul(R,next_wp)
+
+        # Reference values (dotx_r, doty_r, theta_r)
+        dotx_r = (next_wp[0] - current_wp[0])/d_t # Reference velocity in x-direction
+        doty_r = (next_wp[1] - current_wp[1])/d_t # Reference velocity in y-direction
+
+        # Error term
+        # Project the yaw to full angle range (-2pi, pi)
+        yaw_projected = pose[2]
+
+        #e_theta = theta_r - theta
+
+        if theta_r >= 3.12 and theta_r <= 3.16 and pose[2]<0:
+            yaw_projected = 2*np.pi+pose[2]
+        else:
+            yaw_projected = pose[2]
+
+        e_theta = np.clip(theta_r - yaw_projected, -np.pi, np.pi)
+        print("Theta_ref:", str(theta_r), "; Yaw: ",str(yaw_projected), "; Error: ",str(e_theta))
+
+
+        # PID for the heading error
+        K = 1
+        K_p= 1
+        K_i = 0.0005
+        K_d = 0.8
+
+        P_a = K_p * self.previous_e_theta
+        I_a = self.integral_e_theta + K_i * self.previous_e_theta*d_t
+        D_a = K_d * (e_theta - self.previous_e_theta)/d_t
+    
+        steering_angle = (P_a + I_a + D_a)
+
+        # Velocity based on reference trajectory
+        speed = np.linalg.norm([dotx_r, doty_r])
+
+        # Set historian
+        self.previous_e_theta = e_theta
+        self.integral_e_theta =+ I_a
+        print("I_a: "+ str(I_a))
+
+        return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
     
