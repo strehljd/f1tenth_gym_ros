@@ -273,7 +273,87 @@ class Lab1(Node):
         
     def ilqr_control(self, pose):
         #### YOUR CODE HERE ####
+
+        def linearize_dynamics(v_i, delta_i, x_i, y_i, theta_i):
+            # Calculate the linearized state-space equation based on the current u and state
+
+            # Linearization based on jacobian linearization
+            A_t = np.array([[1, 0, -v_i *np.sin(theta_i)], [0, 1, v_i * np.cos(theta_i)], [0, 0, 1]])
+            B_t = np.array([[np.cos(theta_i), 0],[np.sin(theta_i), 0 ], [np.tan(delta_i)/d, v_i/(d* np.square(np.cos(delta_i))) ]])
+            f_x = np.array([[v_i*np.cos(theta_i) - x_i], [v_i*np.sin(theta_i) - y_i], [v_i*np.tan(delta_i)/d - theta_i]])
+
+            # Represent in homogenous coordinate systems
+            A_ht = np.concatenate((A_t,f_x), axis=1)
+            A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
+            B_ht = np.append(B_t, [[0,0]], axis=0)
+
+            return A_ht, B_ht            
+
+        ### MAIN ### 
+        # Parameters
+        s_dim = 3 # dimension of the state
+        u_dim = 2 # dimension of the control output
+        d = 0.5 # length of the robot (in Ackermann modeling)
+        N = len(self.ref_traj) # number of timesteps in the reference trajectory TODO TODO change to length
         
+        ## Tuning
+        iterations = 100 # (max) number of iterations
+        q = 1 # tuning parameter for q -> state penalty
+        r = 1 # tunign parameter for u -> control action penalty
+
+        ## Cost function
+        Q = q * np.eye(s_dim,s_dim)
+        R = r * np.eye(u_dim,u_dim)
+
+        ## Preallocate matrices
+        R_h = np.zeros((iterations ,N, u_dim+1, u_dim+1))
+        Q_h = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        P = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        #TODO K
+   
+        # Initialize algorithm - First iteration
+        ## Use reference trajectory and u=0; but maybe u=PID?
+        ## u
+        traj_u = np.zeros((iterations ,N, u_dim)) # Set initial trajectory to 0 
+
+        ## x (state)
+        traj_x = np.zeros((iterations ,N, s_dim))
+        traj_x[0,:,0:2]  = self.ref_traj # Set initial trajectory to reference trajectory
+        
+        # Calculate theta_ref based on the tangent between the current and the next waypoint
+        for j in range(0,N-1,1):
+            traj_x[0,j,2] =  np.arctan2(traj_x[0,j+1,1]-traj_x[0,j,1], traj_x[0,j+1,0]-traj_x[0,j,0]) # Set initial trajectory to reference trajectory
+        
+        print("traj_u", traj_x[0,:,:])
+        
+        
+        ### Loop over i ###
+        i = 0 # TODO loops
+
+        # Set up trajectories
+
+        # Quadricize cost about trajectory
+        
+        # TODO set last P value
+        # Backward pass
+        for t in range(N-1,0,-1):
+            A_hom, B_hom = linearize_dynamics(traj_u[i,t,0],traj_u[i,t,1],traj_x[i,t,0],traj_x[i,t,1],traj_x[i,t,2]) # Calculate A, B and f
+
+            K_hom = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:] + np.matmul(np.matmul(np.transpose(B_hom), P[i,t+1,:]),B_hom))),np.transpose(B_hom)),P[i,t+1,:]), A_hom)
+
+
+        # Forward pass
+
+        # Calculate u
+
+        # Calculate new x 
+        
+        # Check cost -> maybe break!
+
+        ### Loop ###
+
+
+
         
         # return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
