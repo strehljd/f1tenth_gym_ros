@@ -340,7 +340,7 @@ class Lab1(Node):
             # Linearization based on jacobian linearization
             A_t = np.array([[1, 0, -v_i *np.sin(theta_i)], [0, 1, v_i * np.cos(theta_i)], [0, 0, 1]])
             B_t = np.array([[np.cos(theta_i), 0],[np.sin(theta_i), 0 ], [np.tan(delta_i)/d, v_i/(d* np.square(np.cos(delta_i))) ]])
-            f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_i_t1], [v_i*np.sin(theta_i) - y_i_t1], [v_i*np.tan(delta_i)/d - theta_i_t1]])
+            f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
 
             # Represent in homogenous coordinate systems
             A_ht = np.concatenate((A_t,f_x_xt1), axis=1)
