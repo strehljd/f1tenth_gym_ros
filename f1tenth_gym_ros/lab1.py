@@ -325,13 +325,7 @@ class Lab1(Node):
         ## x (state)
         traj_x = np.zeros((iterations ,N, s_dim))
         traj_x[0,:,0:2]  = self.ref_traj # Set initial trajectory to reference trajectory
-        
-        # Calculate theta_ref based on the tangent between the current and the next waypoint
-        for j in range(0,N-1,1):
-            traj_x[0,j,2] =  np.arctan2(traj_x[0,j+1,1]-traj_x[0,j,1], traj_x[0,j+1,0]-traj_x[0,j,0]) # Set initial trajectory to reference trajectory
-        
-        print("traj_u", traj_x[0,:,:])
-        
+        traj_x = add_theta(traj_x)        
         
         ### Loop over i ###
         i = 0 # TODO loops
