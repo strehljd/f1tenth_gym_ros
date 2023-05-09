@@ -3,6 +3,7 @@ from rclpy.node import Node
 import sys
 import time
 import os
+import matplotlib.pyplot as plt
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
@@ -71,6 +72,9 @@ class Lab1(Node):
 
         self.integral_e_theta = 0
         self.previous_e_theta = 0
+
+
+        self.x_plot = np.zeros((10 ,252, 3,1))
     
         self.moved = False
     
@@ -152,6 +156,17 @@ class Lab1(Node):
         cmd.drive.steering_angle = u[0]
         cmd.drive.speed = u[1]
         self.cmd_pub.publish(cmd)
+
+        # track = np.transpose(self.ref_traj, (1,0))
+ 
+        # fig, ax = plt.subplots()
+        # ax.plot(track[:][0], track[:][1], label = "reference trajectory")
+        # ax.plot(self.x_plot[:,0], self.x_plot[:,1], label = "ilqr trajectory")
+        # ax.set_xlabel("x")
+        # ax.set_ylabel("y")
+        # plt.legend()
+        # plt.show()
+        # print("this is your plot :)")
 
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
@@ -357,18 +372,20 @@ class Lab1(Node):
             return traj_x       
 
         def get_Q_hom(traj_x_ref, Q, i, t):
-            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
+            Q_hom_12 = Q @ np.array([traj_x[i,t,:,0]-traj_x_ref[i,t,:,0]]).T  
             # = Q(x_t^i - x_t^ref)
  
-            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
+            Q_hom_21 = np.array([traj_x[i,t,:,0]-traj_x_ref[i,t,:,0]]) @ Q
             # = (x_t^i - x_t^ref)^T Q
 
-            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
+            Q_hom_22 = (traj_x[i,t,:,0]-traj_x_ref[i,t,:,0]) @ np.array([traj_x[i,t,:,0]-traj_x_ref[i,t,:,0]]).T
             # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
 
             return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
         
         ### MAIN ### 
+        current_timestep = self.waypoint_index
+        self.get_ref_pos()
         # Parameters
         s_dim = 3 # dimension of the state
         u_dim = 2 # dimension of the control output
@@ -377,7 +394,7 @@ class Lab1(Node):
         
         ## Tuning
         iterations = 100 # (max) number of iterations
-        q = 1 # tuning parameter for q -> state penalty
+        q = 10 # tuning parameter for q -> state penalty
         qf = 50 # tuning parameter for final q
         r = 1 # tunign parameter for u -> control action penalty
 
@@ -387,91 +404,96 @@ class Lab1(Node):
         R = r * np.eye(u_dim)
 
         ## Preallocate matrices
-        traj_x_ref = np.zeros((iterations ,N, s_dim))
-        traj_u_ref = np.zeros((iterations, N, u_dim))
+        traj_x_ref = np.zeros((iterations ,N, s_dim,1))
+        traj_u_ref = np.zeros((iterations, N, u_dim,1))
         R_hom = np.zeros((iterations ,N, u_dim+1, u_dim+1))
         Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         K_hom = np.zeros((iterations ,N, u_dim+1, s_dim+1))
      
         ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
-        traj_x_ref[:,:,0:2] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
+        traj_x_ref[:,:,0:2,0] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
         traj_x_ref = add_theta(traj_x_ref)
    
         # Initialize algorithm - First iteration
         ## Use reference trajectory and u=0; but maybe u=PID?
         ## u
-        traj_u = np.zeros((iterations ,N, u_dim)) # Set initial trajectory to 0 
-
+        traj_u = np.zeros((iterations ,N, u_dim,1)) # Set initial trajectory to 0 
+        traj_u[:,:,:,0] =3.14/180
         ## x (state)
-        traj_x = np.zeros((iterations ,N, s_dim))
-        traj_x[0,:,0:2]  = self.ref_traj # Set initial trajectory to reference trajectory
+        traj_x = np.zeros((iterations ,N, s_dim,1))
+        traj_x[0,:,0:2,0]  = self.ref_traj # Set initial trajectory to reference trajectory
         traj_x = add_theta(traj_x)        
+        traj_x[:,current_timestep,:,0] = pose
         
         ### Loop over i ###
-        i = 0 # TODO loops
+        for i in range(0, iterations-1, 1):
 
-        # Set up trajectories
+            # Set up trajectories
 
-        # Quadricize cost about trajectory
-        for t in range(0,N-1,1):
-            ## Be aware Transpose for x, and u is a column vector       
-            Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
+            # Quadricize cost about trajectory
+            for t in range(current_timestep,N-1,1):
+                ## Be aware Transpose for x, and u is a column vector       
+                Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
 
-            ## Calculate R_hom
-            R_hom_12 = R @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]).T)
-            # = R(u_t^i - u_t^ref)
+                ## Calculate R_hom
+                R_hom_12 = R @ np.array([traj_u[i,t,:,0]-traj_u_ref[i,t,:,0]]).T
+                # = R(u_t^i - u_t^ref)
 
-            R_hom_21 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]))
-            # = (u_t^i - u_t^ref)^T
+                R_hom_21 = np.array([traj_u[i,t,:,0]-traj_u_ref[i,t,:,0]])
+                # = (u_t^i - u_t^ref)^T
 
-            R_hom_22 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])) @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])).T
-            # = (u_t^i - u_t^ref)^T * (u_t^i - u_t^ref)
+                R_hom_22 = np.array([traj_u[i,t,:,0]-traj_u_ref[i,t,:,0]]) @ np.array([traj_u[i,t,:,0]-traj_u_ref[i,t,:,0]]).T
+                # = (u_t^i - u_t^ref)^T * (u_t^i - u_t^ref)
 
-            R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
+                R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
+            
+            P_hom[i,N-1,:,:] = get_Q_hom(traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
+            # Backward pass
+            for t in range(N-2,current_timestep,-1): # N-2 as we set the last and we start counting with 0
+                A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0,0], delta_i = traj_u[i,t,1,0], theta_i =  traj_x_ref[i,t,2,0], x_it1 = traj_x[i+1,t,0,0], y_it1 = traj_x[i+1,t,1,0], theta_it1 = traj_x[i+1,t,2,0]) # Calculate A, B and f
+
+                #P_hom[i,t,:,:] = Q_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]),K_hom[i,t,:,:]) + np.matmul(np.matmul(np.transpose(A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])), P_hom[i,t+1,:,:]),(A_hom + A_hom + np.matmul(B_hom, K_hom[i,t,:,:])))
+                f = np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_hom[i,t,:,:]), K_hom[i,t,:,:])
+                g = np.transpose(A_hom + np.matmul(B_hom, K_hom[i,t,:,:]) )
+                l = np.transpose(g)
+                P_hom[i,t,:,:] = Q_hom[i,t,:,:] + f + (g@P_hom[i,t+1,:,:]@l)
+
+                #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
+
+                par_k = -np.linalg.pinv(R_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
+                K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(par_k, np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
+            
+
+            # Forward pass
+            for t in range(1+current_timestep,N-1,1):
+            # Calculate u
+                #traj_u = np.zeros((iterations ,N, u_dim))  
+                #traj_x = np.zeros((iterations ,N, s_dim))
+                # B_ht = np.append(B_t, [[0,0]], axis=0)-----TO APPEND 
+                vec_hom = np.append([[traj_x[i+1,t,0,0]-traj_x[i,t,0,0]],[traj_x[i+1,t,1,0]-traj_x[i,t,1,0]], [traj_x[i,t,2,0]-traj_x[i+1,t,2,0]]], [[1]], axis=0) #where is x_i+1 ??? --> we're assuming x_i=x_ref, x_i+1=x_i
+                mul_hom = K_hom[i,t,:,:]@vec_hom
+                mul =  mul_hom[0:2] #remove the last line - index 2 - from mul_hom to be consistent with u  
+                traj_u[i+1,t,:,0] = traj_u[i,t,:,0] + mul.T
+
+            # Calculate new x 
+                #f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
+                row_1 = [traj_u[i+1,t,0,0]*np.cos(traj_x[i+1,t,2,0]) + traj_x[i+1,t,0,0]]
+                row_2 = [traj_u[i+1,t,0,0]*np.sin(traj_x[i+1,t,2,0]) + traj_x[i+1,t,1,0]]
+                row_3 = [traj_u[i+1,t,0,0]*np.tan(traj_u[i+1,t,1,0])/d + traj_x[i+1,t,2,0]]
+                traj_x[i+1,t+1,:,0] = np.concatenate((row_1,row_2,row_3),axis=0)
+
+            # TODO Check cost -> maybe break!
+            ### Loop ###
+        speed = traj_u[iterations-1, current_timestep, 0,0]
+        steering_angle = traj_u[iterations-1, current_timestep, 1,0]
+        print("time", current_timestep)
+        print("u", traj_u[iterations-1, :, :,0])
+        print("x", traj_x[iterations-1, :, :,0])
         
-        P_hom[i,N-1,:,:] = get_Q_hom(traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
-        # Backward pass
-        for t in range(N-2,0,-1): # N-2 as we set the last and we start counting with 0
-            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,t,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
+        self.x_plot = traj_x[10-1,:,:,0] 
 
-            #P_hom[i,t,:,:] = Q_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]),K_hom[i,t,:,:]) + np.matmul(np.matmul(np.transpose(A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])), P_hom[i,t+1,:,:]),(A_hom + A_hom + np.matmul(B_hom, K_hom[i,t,:,:])))
-            f = np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_hom[i,t,:,:]), K_hom[i,t,:,:])
-            g = np.transpose(A_hom + np.matmul(B_hom, K_hom[i,t,:,:]) )
-            l = np.transpose(g)
-            P_hom[i,t,:,:] = Q_hom[i,t,:,:] + f + (g@P_hom[i,t+1,:,:]@l)
-
-            #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
-
-            par_k = -np.linalg.pinv(R_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
-            K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(par_k, np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
-           
-
-        # Forward pass
-        for t in range(1,N-1,1):
-            print()
-        # Calculate u
-            #traj_u = np.zeros((iterations ,N, u_dim))  
-            #traj_x = np.zeros((iterations ,N, s_dim))
-            # B_ht = np.append(B_t, [[0,0]], axis=0)-----TO APPEND 
-            vec_hom = np.append([[traj_x[i,t,0]-traj_x_ref[i,t,0]],[traj_x[i,t,1]-traj_x_ref[i,t,1]], [traj_x[i,t,2]-traj_x_ref[i,t,2]]], [[1]], axis=0) #where is x_i+1 ??? --> we're assuming x_i=x_ref, x_i+1=x_i
-            mul_hom = K_hom[i,t,:,:]@vec_hom
-            mul =  mul_hom[0:2] #remove the last line - index 2 - from mul_hom to be consistent with u  
-            traj_u[i+1,t,:] = traj_u[i,t,:] + mul
-
-        # Calculate new x 
-            #f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
-            f_fp = np.array([[traj_u[i+1,t,0]*np.cos(traj_x[i+1,t,2]) + traj_x[i+1,t,0]], [traj_u[i+1,t,0]*np.sin(traj_x[i+1,t,2]) + traj_x[i+1,t,1]], [traj_u[i+1,t,0]*np.tan(traj_u[i+1,t,1])/d + traj_x[i+1,t,2]]])
-            traj_x[i+1,t+1,:] = f_fp
-
-        # Check cost -> maybe break!
-
-        ### Loop ###
-
-
-
-        
-        # return np.array([steering_angle, speed])
+        return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
         
