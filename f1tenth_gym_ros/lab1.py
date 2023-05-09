@@ -334,16 +334,16 @@ class Lab1(Node):
     def ilqr_control(self, pose):
         #### YOUR CODE HERE ####
 
-        def linearize_dynamics(v_i, delta_i, x_i, y_i, theta_i):
+        def linearize_dynamics(v_i, delta_i, y_i, theta_i, x_it1, y_it1, theta_it1): 
             # Calculate the linearized state-space equation based on the current u and state
 
             # Linearization based on jacobian linearization
             A_t = np.array([[1, 0, -v_i *np.sin(theta_i)], [0, 1, v_i * np.cos(theta_i)], [0, 0, 1]])
             B_t = np.array([[np.cos(theta_i), 0],[np.sin(theta_i), 0 ], [np.tan(delta_i)/d, v_i/(d* np.square(np.cos(delta_i))) ]])
-            f_x = np.array([[v_i*np.cos(theta_i) - x_i], [v_i*np.sin(theta_i) - y_i], [v_i*np.tan(delta_i)/d - theta_i]])
+            f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_i_t1], [v_i*np.sin(theta_i) - y_i_t1], [v_i*np.tan(delta_i)/d - theta_i_t1]])
 
             # Represent in homogenous coordinate systems
-            A_ht = np.concatenate((A_t,f_x), axis=1)
+            A_ht = np.concatenate((A_t,f_x_xt1), axis=1)
             A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
             B_ht = np.append(B_t, [[0,0]], axis=0)
 
@@ -426,7 +426,7 @@ class Lab1(Node):
         P_hom[i,N,:,:] = Q_hom[i,N,:,:] # Set last P to final Q_hom value -> TODO Check if this is right
         # Backward pass
         for t in range(N-1,0,-1):
-            A_hom, B_hom = linearize_dynamics(traj_u[i,t,0],traj_u[i,t,1],traj_x[i,t,0],traj_x[i,t,1],traj_x[i,t,2]) # Calculate A, B and f
+            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], y_i = traj_x[i,t,0], theta_i = traj_x[i,t,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
 
             K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
 
