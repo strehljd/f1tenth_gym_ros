@@ -399,26 +399,18 @@ class Lab1(Node):
         # Set up trajectories
 
         # Quadricize cost about trajectory
-        for t in range(0,N,1):
-            ## Calculate Q_hom 
-            Q_hom_12 = np.matmul(Q,(np.transpose(traj_x[i,t,:])-np.transpose(traj_x_ref[i,t,:]))) # = Q(x_t^i - x_t^ref)
-            print("Test", (np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:])))
-            Q_hom_21 = np.matmul(np.transpose((traj_x[i,t,:]-traj_x_ref[i,t,:])), Q) # = (x_t^i - x_t^ref)^T Q
-            Q_hom_22 = np.matmul(np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:]),(traj_x[i,t,:]-traj_x_ref[i,t,:])) # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)
-            
-            Q_right = np.vstack((Q,Q_hom_21))
-            print("Q_right", Q_right)
-            
-            print("-------------")
-            print("Q_hom_12", Q_hom_12)
-            print("np.shape(Q_hom_12)", np.shape(Q_hom_12))
-            print("Q_hom_22", Q_hom_22)
-            print("np.shape(Q_hom_22)", np.shape(Q_hom_22))
-            Q_left = np.vstack((Q_hom_12,Q_hom_22))
-            print("Q_left", Q_left)
+        for t in range(0,1,1):
+            ## Calculate Q_hom according to Tutorial1 -> slide 14
+            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
+            # = Q(x_t^i - x_t^ref)
+ 
+            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
+            # = (x_t^i - x_t^ref)^T Q
 
-            Q_hom[i,t,:,:] = np.concatenate((Q_right,Q_left), axis=1)
-            print("Q_hom", Q_hom)
+            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
+            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
+       
+            Q_hom[i,t,:,:] = np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
 
             ## Calculate R_hom
 
