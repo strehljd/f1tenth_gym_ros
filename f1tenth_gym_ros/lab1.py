@@ -454,7 +454,7 @@ class Lab1(Node):
             #traj_u = np.zeros((iterations ,N, u_dim))  
             #traj_x = np.zeros((iterations ,N, s_dim))
             # B_ht = np.append(B_t, [[0,0]], axis=0)-----TO APPEND 
-            vec_hom = np.append(np.array([traj_x[i+1,t,:]-traj_x[i,t,:]]), [1], axis=2) #where is x_i+1 ???
+            vec_hom = np.append([[traj_x[i+1,t,0]-traj_x[i,t,0]],[traj_x[i+1,t,1]-traj_x[i,t,1]], [traj_x[i+1,t,2]-traj_x[i,t,2]]], [[1]], axis=0) #where is x_i+1 ???
             mul_hom = K_hom[i,t,:,:]@vec_hom
             mul =  mul_hom[0:2] #remove the last line - index 2 - from mul_hom to be consistent with u  
             traj_u[i+1,t,:] = traj_u[i,t,:] + mul
