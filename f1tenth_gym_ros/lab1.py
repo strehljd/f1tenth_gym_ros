@@ -287,7 +287,13 @@ class Lab1(Node):
             A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
             B_ht = np.append(B_t, [[0,0]], axis=0)
 
-            return A_ht, B_ht            
+            return A_ht, B_ht     
+        
+        def add_theta(traj_x):
+            # Calculate theta_ref based on the tangent between the current and the next waypoint
+            for j in range(0,N-1,1):
+                traj_x[0,j,2] =  np.arctan2(traj_x[0,j+1,1]-traj_x[0,j,1], traj_x[0,j+1,0]-traj_x[0,j,0])
+            return traj_x       
 
         ### MAIN ### 
         # Parameters
