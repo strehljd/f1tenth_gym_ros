@@ -373,7 +373,8 @@ class Lab1(Node):
 
         ## Preallocate matrices
         traj_x_ref = np.zeros((iterations ,N, s_dim))
-        R_h = np.zeros((iterations ,N, u_dim+1, u_dim+1))
+        traj_u_ref = np.zeros((iterations, N, u_dim))
+        R_hom = np.zeros((iterations ,N, u_dim+1, u_dim+1))
         Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         K_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
@@ -399,7 +400,9 @@ class Lab1(Node):
         # Set up trajectories
 
         # Quadricize cost about trajectory
-        for t in range(0,1,1):
+        for t in range(0,N,1):
+            ## Be aware Transpose for x, and u is a column vector
+
             ## Calculate Q_hom according to Tutorial1 -> slide 14
             Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
             # = Q(x_t^i - x_t^ref)
@@ -413,7 +416,16 @@ class Lab1(Node):
             Q_hom[i,t,:,:] = np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
 
             ## Calculate R_hom
+            R_hom_12 = R @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]).T)
+            # = R(u_t^i - u_t^ref)
 
+            R_hom_21 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]))
+            # = (u_t^i - u_t^ref)^T
+
+            R_hom_22 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])) @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])).T
+            # = (u_t^i - u_t^ref)^T * (u_t^i - u_t^ref)
+
+            R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
         
         P_hom[i,N,:,:] = Q_hom[i,N,:,:] # Set last P to final Q_hom value -> TODO Check if this is right
         # Backward pass
