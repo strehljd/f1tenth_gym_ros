@@ -334,16 +334,16 @@ class Lab1(Node):
     def ilqr_control(self, pose):
         #### YOUR CODE HERE ####
 
-        def linearize_dynamics(v_i, delta_i, x_i, y_i, theta_i):
+        def linearize_dynamics(v_i, delta_i, theta_i, x_it1, y_it1, theta_it1): 
             # Calculate the linearized state-space equation based on the current u and state
 
             # Linearization based on jacobian linearization
             A_t = np.array([[1, 0, -v_i *np.sin(theta_i)], [0, 1, v_i * np.cos(theta_i)], [0, 0, 1]])
             B_t = np.array([[np.cos(theta_i), 0],[np.sin(theta_i), 0 ], [np.tan(delta_i)/d, v_i/(d* np.square(np.cos(delta_i))) ]])
-            f_x = np.array([[v_i*np.cos(theta_i) - x_i], [v_i*np.sin(theta_i) - y_i], [v_i*np.tan(delta_i)/d - theta_i]])
+            f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
 
             # Represent in homogenous coordinate systems
-            A_ht = np.concatenate((A_t,f_x), axis=1)
+            A_ht = np.concatenate((A_t,f_x_xt1), axis=1)
             A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
             B_ht = np.append(B_t, [[0,0]], axis=0)
 
@@ -365,22 +365,25 @@ class Lab1(Node):
         ## Tuning
         iterations = 100 # (max) number of iterations
         q = 1 # tuning parameter for q -> state penalty
+        qf = 50 # tuning parameter for final q
         r = 1 # tunign parameter for u -> control action penalty
 
         ## Cost function
         Q = q * np.eye(s_dim)
+        Qf = qf * np.eye(s_dim)
         R = r * np.eye(u_dim)
 
         ## Preallocate matrices
         traj_x_ref = np.zeros((iterations ,N, s_dim))
-        R_h = np.zeros((iterations ,N, u_dim+1, u_dim+1))
+        traj_u_ref = np.zeros((iterations, N, u_dim))
+        R_hom = np.zeros((iterations ,N, u_dim+1, u_dim+1))
         Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         K_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         #TODO Dimensions of K_hom
 
         ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
-        traj_x_ref[0,:,0:2] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
+        traj_x_ref[:,:,0:2] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
         traj_x_ref = add_theta(traj_x_ref)
    
         # Initialize algorithm - First iteration
@@ -396,37 +399,42 @@ class Lab1(Node):
         ### Loop over i ###
         i = 0 # TODO loops
 
+        def get_Q_hom(traj_x_ref, Q, i, t):
+            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
+            # = Q(x_t^i - x_t^ref)
+ 
+            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
+            # = (x_t^i - x_t^ref)^T Q
+
+            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
+            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
+
+            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
+
+
         # Set up trajectories
 
         # Quadricize cost about trajectory
         for t in range(0,N,1):
-            ## Calculate Q_hom 
-            Q_hom_12 = np.matmul(Q,(np.transpose(traj_x[i,t,:])-np.transpose(traj_x_ref[i,t,:]))) # = Q(x_t^i - x_t^ref)
-            print("Test", (np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:])))
-            Q_hom_21 = np.matmul(np.transpose((traj_x[i,t,:]-traj_x_ref[i,t,:])), Q) # = (x_t^i - x_t^ref)^T Q
-            Q_hom_22 = np.matmul(np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:]),(traj_x[i,t,:]-traj_x_ref[i,t,:])) # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)
-            
-            Q_right = np.vstack((Q,Q_hom_21))
-            print("Q_right", Q_right)
-            
-            print("-------------")
-            print("Q_hom_12", Q_hom_12)
-            print("np.shape(Q_hom_12)", np.shape(Q_hom_12))
-            print("Q_hom_22", Q_hom_22)
-            print("np.shape(Q_hom_22)", np.shape(Q_hom_22))
-            Q_left = np.vstack((Q_hom_12,Q_hom_22))
-            print("Q_left", Q_left)
-
-            Q_hom[i,t,:,:] = np.concatenate((Q_right,Q_left), axis=1)
-            print("Q_hom", Q_hom)
+            ## Be aware Transpose for x, and u is a column vector       
+            Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
 
             ## Calculate R_hom
+            R_hom_12 = R @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]).T)
+            # = R(u_t^i - u_t^ref)
 
+            R_hom_21 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]))
+            # = (u_t^i - u_t^ref)^T
+
+            R_hom_22 = (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])) @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]])).T
+            # = (u_t^i - u_t^ref)^T * (u_t^i - u_t^ref)
+
+            R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
         
-        P_hom[i,N,:,:] = Q_hom[i,N,:,:] # Set last P to final Q_hom value -> TODO Check if this is right
+        P_hom[i,N,:,:] = get_Q_hom(traj_x_ref, Qf, i, N) # Set last P to final Q_hom value -> TODO Check if this is right
         # Backward pass
         for t in range(N-1,0,-1):
-            A_hom, B_hom = linearize_dynamics(traj_u[i,t,0],traj_u[i,t,1],traj_x[i,t,0],traj_x[i,t,1],traj_x[i,t,2]) # Calculate A, B and f
+            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,:,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
 
             #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
             par_k = -np.linalg.pinv(R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
