@@ -379,7 +379,7 @@ class Lab1(Node):
         R_hom = np.zeros((iterations ,N, u_dim+1, u_dim+1))
         Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
-        K_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        K_hom = np.zeros((iterations ,N, u_dim+1, s_dim+1))
         #TODO Dimensions of K_hom
 
         ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
