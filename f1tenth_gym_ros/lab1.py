@@ -355,6 +355,18 @@ class Lab1(Node):
                 traj_x[0,j,2] =  np.arctan2(traj_x[0,j+1,1]-traj_x[0,j,1], traj_x[0,j+1,0]-traj_x[0,j,0])
             return traj_x       
 
+        def get_Q_hom(traj_x_ref, Q, i, t):
+            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
+            # = Q(x_t^i - x_t^ref)
+ 
+            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
+            # = (x_t^i - x_t^ref)^T Q
+
+            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
+            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
+
+            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
+        
         ### MAIN ### 
         # Parameters
         s_dim = 3 # dimension of the state
@@ -399,17 +411,6 @@ class Lab1(Node):
         ### Loop over i ###
         i = 0 # TODO loops
 
-        def get_Q_hom(traj_x_ref, Q, i, t):
-            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
-            # = Q(x_t^i - x_t^ref)
- 
-            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
-            # = (x_t^i - x_t^ref)^T Q
-
-            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
-            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
-
-            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
 
 
         # Set up trajectories
