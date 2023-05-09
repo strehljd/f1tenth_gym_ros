@@ -415,7 +415,7 @@ class Lab1(Node):
         # Set up trajectories
 
         # Quadricize cost about trajectory
-        for t in range(0,N,1):
+        for t in range(0,N-1,1):
             ## Be aware Transpose for x, and u is a column vector       
             Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
 
@@ -431,7 +431,7 @@ class Lab1(Node):
 
             R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
         
-        P_hom[i,N,:,:] = get_Q_hom(traj_x_ref, Qf, i, N) # Set last P to final Q_hom value -> TODO Check if this is right
+        P_hom[i,N-1,:,:] = get_Q_hom(traj_x_ref, Qf, i, N-1) 
         # Backward pass
         for t in range(N-1,0,-1):
             A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,:,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
