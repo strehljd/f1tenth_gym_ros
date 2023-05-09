@@ -345,7 +345,8 @@ class Lab1(Node):
             # Represent in homogenous coordinate systems
             A_ht = np.concatenate((A_t,f_x_xt1), axis=1)
             A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
-            B_ht = np.append(B_t, [[0,0]], axis=0)
+            B_ht = np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1)
+            B_ht = np.append(B_ht, [[0,0,1]], axis=0)
 
             return A_ht, B_ht     
         
@@ -355,6 +356,18 @@ class Lab1(Node):
                 traj_x[0,j,2] =  np.arctan2(traj_x[0,j+1,1]-traj_x[0,j,1], traj_x[0,j+1,0]-traj_x[0,j,0])
             return traj_x       
 
+        def get_Q_hom(traj_x_ref, Q, i, t):
+            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
+            # = Q(x_t^i - x_t^ref)
+ 
+            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
+            # = (x_t^i - x_t^ref)^T Q
+
+            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
+            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
+
+            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
+        
         ### MAIN ### 
         # Parameters
         s_dim = 3 # dimension of the state
@@ -379,9 +392,8 @@ class Lab1(Node):
         R_hom = np.zeros((iterations ,N, u_dim+1, u_dim+1))
         Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
         P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
-        K_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
-        #TODO Dimensions of K_hom
-
+        K_hom = np.zeros((iterations ,N, u_dim+1, s_dim+1))
+     
         ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
         traj_x_ref[:,:,0:2] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
         traj_x_ref = add_theta(traj_x_ref)
@@ -399,23 +411,10 @@ class Lab1(Node):
         ### Loop over i ###
         i = 0 # TODO loops
 
-        def get_Q_hom(traj_x_ref, Q, i, t):
-            Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
-            # = Q(x_t^i - x_t^ref)
- 
-            Q_hom_21 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ Q
-            # = (x_t^i - x_t^ref)^T Q
-
-            Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
-            # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
-
-            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
-
-
         # Set up trajectories
 
         # Quadricize cost about trajectory
-        for t in range(0,N,1):
+        for t in range(0,N-1,1):
             ## Be aware Transpose for x, and u is a column vector       
             Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
 
@@ -431,20 +430,22 @@ class Lab1(Node):
 
             R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
         
-        P_hom[i,N,:,:] = get_Q_hom(traj_x_ref, Qf, i, N) # Set last P to final Q_hom value -> TODO Check if this is right
+        P_hom[i,N-1,:,:] = get_Q_hom(traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
         # Backward pass
-        for t in range(N-1,0,-1):
-            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,:,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
+        for t in range(N-2,0,-1): # N-2 as we set the last and we start counting with 0
+            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,t,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
 
-            #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
-            par_k = -np.linalg.pinv(R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
-            K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(par_k, np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
-           
             #P_hom[i,t,:,:] = Q_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]),K_hom[i,t,:,:]) + np.matmul(np.matmul(np.transpose(A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])), P_hom[i,t+1,:,:]),(A_hom + A_hom + np.matmul(B_hom, K_hom[i,t,:,:])))
-            f = np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]), K_hom[i,t,:,:])
+            f = np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_hom[i,t,:,:]), K_hom[i,t,:,:])
             g = np.transpose(A_hom + np.matmul(B_hom, K_hom[i,t,:,:]) )
             l = np.transpose(g)
             P_hom[i,t,:,:] = Q_hom[i,t,:,:] + f + (g@P_hom[i,t+1,:,:]@l)
+
+            #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
+
+            par_k = -np.linalg.pinv(R_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
+            K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(par_k, np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
+           
 
         # Forward pass
         for t in range(1,N-1,1):
