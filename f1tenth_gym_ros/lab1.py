@@ -447,12 +447,21 @@ class Lab1(Node):
             P_hom[i,t,:,:] = Q_hom[i,t,:,:] + f + (g@P_hom[i,t+1,:,:]@l)
 
         # Forward pass
-        for t in range(0,N,1):
+        for t in range(1,N-1,1):
             print()
         # Calculate u
+            #traj_u = np.zeros((iterations ,N, u_dim))  
+            #traj_x = np.zeros((iterations ,N, s_dim))
+            # B_ht = np.append(B_t, [[0,0]], axis=0)-----TO APPEND 
+            vec_hom = np.append(np.array([traj_x[i+1,t,:]-traj_x[i,t,:]]), [1], axis=2) #where is x_i+1 ???
+            mul_hom = K_hom[i,t,:,:]@vec_hom
+            mul =  mul_hom[0:2] #remove the last line - index 2 - from mul_hom to be consistent with u  
+            traj_u[i+1,t,:] = traj_u[i,t,:] + mul
 
         # Calculate new x 
-
+            #f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
+            f_fp = np.array([[traj_u[i+1,t,0]*np.cos(traj_x[i+1,t,2]) + traj_x[i+1,t,0]], [traj_u[i+1,t,0]*np.sin(traj_x[i+1,t,2]) + traj_x[i+1,t,1]], [traj_u[i+1,t,0]*np.tan(traj_u[i+1,t,1])/d + traj_x[i+1,t,2]]])
+            traj_x[i+1,t+1,:] = f_fp
 
         # Check cost -> maybe break!
 
