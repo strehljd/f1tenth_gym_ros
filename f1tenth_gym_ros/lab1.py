@@ -345,7 +345,8 @@ class Lab1(Node):
             # Represent in homogenous coordinate systems
             A_ht = np.concatenate((A_t,f_x_xt1), axis=1)
             A_ht = np.append(A_ht, [[0,0,0,1]], axis=0)
-            B_ht = np.append(B_t, [[0,0]], axis=0)
+            B_ht = np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1)
+            B_ht = np.append(B_ht, [[0,0,1]], axis=0)
 
             return A_ht, B_ht     
         
