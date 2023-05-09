@@ -365,10 +365,12 @@ class Lab1(Node):
         ## Tuning
         iterations = 100 # (max) number of iterations
         q = 1 # tuning parameter for q -> state penalty
+        qf = 50 # tuning parameter for final q
         r = 1 # tunign parameter for u -> control action penalty
 
         ## Cost function
         Q = q * np.eye(s_dim)
+        Qf = qf * np.eye(s_dim)
         R = r * np.eye(u_dim)
 
         ## Preallocate matrices
@@ -397,13 +399,7 @@ class Lab1(Node):
         ### Loop over i ###
         i = 0 # TODO loops
 
-        # Set up trajectories
-
-        # Quadricize cost about trajectory
-        for t in range(0,N,1):
-            ## Be aware Transpose for x, and u is a column vector
-
-            ## Calculate Q_hom according to Tutorial1 -> slide 14
+        def get_Q_hom(traj_x_ref, Q, i, t):
             Q_hom_12 = Q @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)  
             # = Q(x_t^i - x_t^ref)
  
@@ -412,8 +408,16 @@ class Lab1(Node):
 
             Q_hom_22 = (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]])) @ (np.array([traj_x[i,t,:]-traj_x_ref[i,t,:]]).T)
             # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)            
-       
-            Q_hom[i,t,:,:] = np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
+
+            return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
+
+
+        # Set up trajectories
+
+        # Quadricize cost about trajectory
+        for t in range(0,N,1):
+            ## Be aware Transpose for x, and u is a column vector       
+            Q_hom[i,t,:,:] = get_Q_hom(traj_x_ref, Q, i, t)
 
             ## Calculate R_hom
             R_hom_12 = R @ (np.array([traj_u[i,t,:]-traj_u_ref[i,t,:]]).T)
@@ -427,7 +431,7 @@ class Lab1(Node):
 
             R_hom[i,t,:,:] = np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
         
-        P_hom[i,N,:,:] = Q_hom[i,N,:,:] # Set last P to final Q_hom value -> TODO Check if this is right
+        P_hom[i,N,:,:] = get_Q_hom(traj_x_ref, Qf, i, N) # Set last P to final Q_hom value -> TODO Check if this is right
         # Backward pass
         for t in range(N-1,0,-1):
             A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,:,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
