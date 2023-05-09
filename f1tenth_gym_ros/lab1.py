@@ -432,7 +432,7 @@ class Lab1(Node):
         P_hom[i,N-1,:,:] = get_Q_hom(traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
         # Backward pass
         for t in range(N-2,0,-1): # N-2 as we set the last and we start counting with 0
-            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,:,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
+            A_hom, B_hom = linearize_dynamics(v_i = traj_u[i,t,0], delta_i = traj_u[i,t,1], theta_i =  traj_x_ref[i,t,2], x_it1 = traj_x[i+1,t,0], y_it1 = traj_x[i+1,t,1], theta_it1 = traj_x[i+1,t,2]) # Calculate A, B and f
 
             #K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
             par_k = -np.linalg.pinv(R_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(B_hom),P_hom[i,t+1,:,:]),B_hom))
