@@ -265,6 +265,66 @@ class Lab1(Node):
     
     def pure_pursuit_control(self, pose):
         #### YOUR CODE HERE ####
+        #param
+        d_t = 0.5
+
+        # Get reference trajectory
+        wp_number = self.waypoint_index; 
+        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
+        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
+
+        # Compute reference theta
+        theta_r = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
+
+        # Transform waypoints into robot frame
+        R = np.array([[np.cos(theta_r), -np.sin(theta_r)], [np.sin(theta_r), np.cos(theta_r)]])
+        current_wp = np.matmul(R,current_wp)
+        next_wp = np.matmul(R,next_wp)
+
+        # Reference values (dotx_r, doty_r, theta_r)
+        dotx_r = (next_wp[0] - current_wp[0])/d_t # Reference velocity in x-direction
+        doty_r = (next_wp[1] - current_wp[1])/d_t # Reference velocity in y-direction
+
+        # Error term
+        # Project the yaw to full angle range (-2pi, pi)
+        yaw_projected = pose[2]
+
+        #e_theta = theta_r - theta
+
+        if theta_r >= 3.12 and theta_r <= 3.16 and pose[2]<0:
+            yaw_projected = 2*np.pi+pose[2]
+        else:
+            yaw_projected = pose[2]
+
+        e_theta = np.clip(theta_r - yaw_projected, -np.pi, np.pi)
+        print("Theta_ref:", str(theta_r), "; Yaw: ",str(yaw_projected), "; Error: ",str(e_theta))
+
+
+        # PID for the heading error
+        K = 1
+        K_p= 1
+        K_i = 0.0005
+        K_d = 0.8
+
+        P_a = K_p * self.previous_e_theta
+        I_a = self.integral_e_theta + K_i * self.previous_e_theta*d_t
+        D_a = K_d * (e_theta - self.previous_e_theta)/d_t
+    
+        steering_angle = (P_a + I_a + D_a)
+
+        # Velocity based on reference trajectory
+        speed = np.linalg.norm([dotx_r, doty_r])
+
+        # Set historian
+        self.previous_e_theta = e_theta
+        self.integral_e_theta =+ I_a
+        print("I_a: "+ str(I_a))
+
+        return np.array([steering_angle, speed])
+
+
+
+        #### YOUR CODE HERE ####
         
         
         # return np.array([steering_angle, speed])
@@ -300,7 +360,7 @@ class Lab1(Node):
         s_dim = 3 # dimension of the state
         u_dim = 2 # dimension of the control output
         d = 0.5 # length of the robot (in Ackermann modeling)
-        N = len(self.ref_traj) # number of timesteps in the reference trajectory TODO TODO change to length
+        N = len(self.ref_traj) # number of timesteps in the reference trajectory 
         
         ## Tuning
         iterations = 100 # (max) number of iterations
@@ -308,14 +368,20 @@ class Lab1(Node):
         r = 1 # tunign parameter for u -> control action penalty
 
         ## Cost function
-        Q = q * np.eye(s_dim,s_dim)
-        R = r * np.eye(u_dim,u_dim)
+        Q = q * np.eye(s_dim)
+        R = r * np.eye(u_dim)
 
         ## Preallocate matrices
+        traj_x_ref = np.zeros((iterations ,N, s_dim))
         R_h = np.zeros((iterations ,N, u_dim+1, u_dim+1))
-        Q_h = np.zeros((iterations ,N, s_dim+1, s_dim+1))
-        P = np.zeros((iterations ,N, s_dim+1, s_dim+1))
-        #TODO K
+        Q_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        P_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        K_hom = np.zeros((iterations ,N, s_dim+1, s_dim+1))
+        #TODO Dimensions of K_hom
+
+        ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
+        traj_x_ref[0,:,0:2] = self.ref_traj # i = 0 -> anyway it should be the same for all iteraions?!
+        traj_x_ref = add_theta(traj_x_ref)
    
         # Initialize algorithm - First iteration
         ## Use reference trajectory and u=0; but maybe u=PID?
@@ -333,22 +399,47 @@ class Lab1(Node):
         # Set up trajectories
 
         # Quadricize cost about trajectory
+        for t in range(0,N,1):
+            ## Calculate Q_hom 
+            Q_hom_12 = np.matmul(Q,(np.transpose(traj_x[i,t,:])-np.transpose(traj_x_ref[i,t,:]))) # = Q(x_t^i - x_t^ref)
+            print("Test", (np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:])))
+            Q_hom_21 = np.matmul(np.transpose((traj_x[i,t,:]-traj_x_ref[i,t,:])), Q) # = (x_t^i - x_t^ref)^T Q
+            Q_hom_22 = np.matmul(np.transpose(traj_x[i,t,:]-traj_x_ref[i,t,:]),(traj_x[i,t,:]-traj_x_ref[i,t,:])) # = (x_t^i - x_t^ref)^T(x_t^i - x_t^ref)
+            
+            Q_right = np.vstack((Q,Q_hom_21))
+            print("Q_right", Q_right)
+            
+            print("-------------")
+            print("Q_hom_12", Q_hom_12)
+            print("np.shape(Q_hom_12)", np.shape(Q_hom_12))
+            print("Q_hom_22", Q_hom_22)
+            print("np.shape(Q_hom_22)", np.shape(Q_hom_22))
+            Q_left = np.vstack((Q_hom_12,Q_hom_22))
+            print("Q_left", Q_left)
+
+            Q_hom[i,t,:,:] = np.concatenate((Q_right,Q_left), axis=1)
+            print("Q_hom", Q_hom)
+
+            ## Calculate R_hom
+
         
-        # TODO set last P value
+        P_hom[i,N,:,:] = Q_hom[i,N,:,:] # Set last P to final Q_hom value -> TODO Check if this is right
         # Backward pass
         for t in range(N-1,0,-1):
             A_hom, B_hom = linearize_dynamics(traj_u[i,t,0],traj_u[i,t,1],traj_x[i,t,0],traj_x[i,t,1],traj_x[i,t,2]) # Calculate A, B and f
 
             K_hom[i,t,:,:] = np.matmul(np.matmul(np.matmul(-np.linalg.pinv((R_h[i,t,:] + np.matmul(np.matmul(np.transpose(B_hom), P_hom[i,t+1,:,:]),B_hom))),np.transpose(B_hom)),P_hom[i,t+1,:,:]), A_hom)
 
-            P_hom[i,t,:,:] = Q_h[i,t,:,:] + np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]),K_hom[i,t,:,:]) + np.matmul(np.matmul(np.transpose(A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])), P_hom[i,t+1,:,:]),(A_hom + A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])))
+            P_hom[i,t,:,:] = Q_hom[i,t,:,:] + np.matmul(np.matmul(np.transpose(K_hom[i,t,:,:]), R_h[i,t,:,:]),K_hom[i,t,:,:]) + np.matmul(np.matmul(np.transpose(A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])), P_hom[i,t+1,:,:]),(A_hom + A_hom + np.matmul(B_hom[i,t,:,:], K_hom[i,t,:,:])))
 
         # Forward pass
-
+        for t in range(0,N,1):
+            print()
         # Calculate u
 
         # Calculate new x 
-        
+
+
         # Check cost -> maybe break!
 
         ### Loop ###
