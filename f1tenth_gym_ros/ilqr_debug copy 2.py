@@ -22,7 +22,49 @@ def linearize_dynamics(v_i, delta_i, theta_i, x_it1, y_it1, theta_it1, dt):
     #print("A_ht: {}".format(A_ht))
     B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
 
-    return A_ht, B_ht     
+    return A_ht, B_ht  
+ 
+def linearize_dynamics(x_ti ,y_ti ,theta_ti, delta_ti, v_ti, dt, d, x_t1i, y_t1i, theta_t1i, string): 
+    # Calculate the linearized state-space equation based on the current u and state
+    
+    # state, which the lineariztion is made "around"
+    # x_t^i = x_ti
+    # y_t^i = y_ti
+    # theta_t^i = theta_ti
+    # --
+    # delta_t^i = delta_ti
+    # v_t^i = v_ti 
+
+    # Fixed parames
+    # delta_t (timestep length) = dt
+    # wheel lenght of the robot = d
+
+    # State at (t+1)
+    # x_{t+1}^i = x_t1i
+    # y_{t+1}^i = y_t1i
+    # theta_{t+1}^i = theta_t1i
+
+    # Define the matriced based on a Taylor-Approximation
+    A_t = np.array([[1, 0, -v_ti * np.sin(theta_ti) * dt],
+                    [0, 1, v_ti * np.cos(theta_ti) * dt],
+                    [0, 0, 1]])
+
+    B_t = np.array([[np.cos(theta_ti) * dt, 0],
+                    [np.sin(theta_ti) * dt, 0 ],
+                    [np.tan(delta_ti) * dt * (1/d), v_ti * (1/d) * dt * (1/(np.square(np.cos(delta_ti)))) ]])
+    
+
+    
+    f_x_xt1 = np.array([[v_ti*np.cos(theta_ti) + x_ti - x_t1i], 
+                        [v_ti*np.sin(theta_ti) + y_ti - y_t1i], 
+                        [v_ti*np.tan(delta_ti)/d + theta_ti- theta_t1i]])
+
+    # Represent in homogenous coordinate systems
+    A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
+    #print("A_ht: {}".format(A_ht))
+    B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
+
+    return A_ht, B_ht   
 
 def add_theta(traj_x, ref=False):
     # Calculate theta_ref based on the tangent between the current and the next waypoint
@@ -137,7 +179,7 @@ for i in range(max_iterations-1):
     ####### Backward pass
 
     for t in range(N-2,current_timestep-1,-1): # N-2 as we set the last and we start counting with 0
-        A_bw, B_bw = linearize_dynamics(v_i = traj_u[i,t,0,0], delta_i = traj_u[i,t,1,0], theta_i =  traj_x_ref[t,2,0], x_it1 = traj_x[i,t+1,0,0], y_it1 = traj_x[i,t+1,1,0], theta_it1 = traj_x[i,t+1,2,0], dt = dt) # Calculate A, B and f
+        A_bw, B_bw = linearize_dynamics(traj_x[i,t,0,0], traj_x[i,t,1,0], traj_x[i,t,2,0], traj_u[i, t, 1,0], traj_u[i, t, 0,0], dt, d, traj_x[i,t+1,0,0], traj_x[i,t+1,1,0], traj_x[i,t+1,2,0], "Hello world" ) # Calculate A, B and f
         Q_bw = Q_hom[i,t,:,:]
         R_bw = R_hom[i,t,:,:]
         P_bwt1 = P_hom[i,t+1,:,:]
