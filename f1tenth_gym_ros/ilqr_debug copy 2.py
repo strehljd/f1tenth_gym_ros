@@ -142,7 +142,19 @@ traj_x_ref = add_theta(traj_x_ref, ref=True)
 # Initialize algorithm - First iteration
 traj_u = np.empty((max_iterations ,N, u_dim,1)) # Set initial trajectory to 0
 traj_u[:] = np.nan 
-traj_u[0,:,:,0] = 0 
+
+# Guess control inputs for the first iteration
+traj_u[0,:,0,0] = 0.4 # speed for all timestamps
+# Set angle with 1s turn for (hopefully) 90 [deg]
+traj_u[0,0:38,1,0] = 0
+traj_u[0,38:40,1,0] = np.arctan(3.14*d/(0.5))
+traj_u[0,40:72,1,0] = 0
+traj_u[0,72:74,1,0] = np.arctan(3.14*d/(0.5))
+traj_u[0,74:163,1,0] = 0
+traj_u[0,163:165,1,0] = np.arctan(3.14*d/(0.5))
+traj_u[0,165:197,1,0] = 0
+traj_u[0,197:251,1,0] = np.arctan(3.14*d/(0.5))
+
 
 traj_u_ref[:] = 0
 
@@ -150,8 +162,8 @@ traj_u_ref[:] = 0
 ## x (state)
 traj_x = np.empty((max_iterations ,N, s_dim,1))
 traj_x[:] = np.nan 
-traj_x[:,0,:,0]  = traj_x_ref[0,:,0] # Set each initial position in each iteration to start position
-traj_x[0,:,:,0]= traj_x_ref[:,:,0]        
+traj_x[:,0,:,0] = traj_x_ref[0,:,0] # Set each initial position in each iteration to start position
+traj_x[0,:,:,0] = traj_x_ref[:,:,0]        
 #traj_x = add_theta(traj_x)
 
 ####################################################
@@ -183,11 +195,11 @@ for i in range(max_iterations-1):
         Q_bw = Q_hom[i,t,:,:]
         R_bw = R_hom[i,t,:,:]
         P_bwt1 = P_hom[i,t+1,:,:]
-
-        K_hom[i,t,:,:] = -np.linalg.pinv(R_bw + B_bw.T @ P_bwt1 @B_bw) @ B_bw.T @ P_bwt1 @ A_bw
+ 
+        K_hom[i,t,:,:] = -1*(np.linalg.pinv(R_bw + (B_bw.T @ P_bwt1 @B_bw)) @ B_bw.T @ P_bwt1 @ A_bw)
 
         K_bw = K_hom[i,t,:,:]
-        P_hom[i,t,:,:] = Q_bw + K_bw.T @ R_bw @ K_bw + (A_bw+B_bw @ K_bw).T @ P_bwt1 @ (A_bw + B_bw @ K_bw)
+        P_hom[i,t,:,:] = Q_bw + K_bw.T @ R_bw @ K_bw + (A_bw+ (B_bw @ K_bw)).T @ P_bwt1 @ (A_bw + (B_bw @ K_bw))
     
     ####### Forward pass
     for t in range(current_timestep,N-1,1):
