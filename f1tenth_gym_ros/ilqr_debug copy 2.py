@@ -75,9 +75,9 @@ cost_criteria = 1
 #   #   #   #   #   #   #   #   #   #   #   #   #   #   #
 
 ## Cost function
-Q = q * np.eye(s_dim)
-Qf = qf * np.eye(s_dim)
-R = r * np.eye(u_dim)
+Q = q * np.array([[1,0,0],[0,1,0],[0,0,3]])
+Qf = qf * np.array([[1,0,0],[0,1,0],[0,0,3]])
+R = r * np.array([[2,0],[0,1]])
 
 ## Preallocate matrices
 traj_x_ref = np.empty((N, s_dim, 1))
@@ -123,11 +123,6 @@ cost_sum = np.empty((max_iterations, 1))
 cost_sum[:] = np.nan 
 
 for i in range(max_iterations-1):
-    
-    # stopping criteria
-    if cost_sum[i] <= cost_criteria:
-        break
-    runs += 1
 
     # Calculate Q and R
     for t in range(N):
