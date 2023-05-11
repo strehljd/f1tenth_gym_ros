@@ -51,6 +51,8 @@ def get_cost(traj_x, traj_x_ref, traj_u, traj_u_ref, Q_hom, R_hom, i, t):
     x_diff = np.append(np.array([traj_x[i,t,:,0]-traj_x_ref[t,:,0]]).T, [[1]], axis=0)
     u_diff = np.append(np.array([traj_u[i,t,:,0]-traj_u_ref[t,:,0]]).T, [[1]], axis=0)
     cost = x_diff.T @ Q_hom[i][t] @ x_diff + u_diff.T @ R_hom[i][t] @ u_diff
+    if t ==(N-1):
+        cost = x_diff.T @ Q_hom[i][t] @ x_diff # in the final iteration we dont have a control input. Thus, cost is only the state cost.
     return cost
 
 
@@ -117,7 +119,8 @@ traj_x[0,:,:,0]= traj_x_ref[:,:,0]
 runs = 0
 costs = np.empty((max_iterations, N))
 costs[:] = np.nan 
-cost_sum = [np.infty]
+cost_sum = np.empty((max_iterations, 1))
+cost_sum[:] = np.nan 
 
 for i in range(max_iterations-1):
     
@@ -164,10 +167,17 @@ for i in range(max_iterations-1):
                             [traj_u[i+1,t,0,0]*np.tan(traj_u[i+1,t,1,0])/d + traj_x[i+1,t,2,0]]])
         traj_x[i+1,t+1,:,:] = x_new
         
+    for t in range(N):
         # append current cost in timestep, iteration
         costs[i, t] = get_cost(traj_x, traj_x_ref, traj_u, traj_u_ref, Q_hom, R_hom, i, t)
     
-    cost_sum.append(np.sum(costs[i]))
+    cost_sum[i] = (np.sum(costs[i]))
+
+    # stopping criteria
+    if (cost_sum[i] <= cost_criteria) and (i>0):
+        break
+    runs += 1
+
     # Add current trajectory to plot
     plt.plot(traj_x[i,:,0,0],traj_x[i,:,1,0],label=str(i))
 
