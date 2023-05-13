@@ -47,17 +47,17 @@ def linearize_dynamics(x_ti ,y_ti ,theta_ti, delta_ti, v_ti, dt, d, x_t1i, y_t1i
     else:    
         #Linearization as proposed by jan
         # Define the matriced based on a Taylor-Approximation
-        A_t = np.array([[1, 0, -v_t1i * np.sin(theta_t1i) * dt],
-                        [0, 1, v_t1i * np.cos(theta_t1i) * dt],
+        A_t = np.array([[1, 0, -v_ti * np.sin(theta_ti) * dt],
+                        [0, 1, v_ti * np.cos(theta_ti) * dt],
                         [0, 0, 1]])
         
-        B_t = np.array([[np.cos(theta_t1i) * dt, 0],
-                        [np.sin(theta_t1i) * dt, 0 ],
-                        [0, v_t1i * (1/d) * dt * (1/(np.square(np.cos(delta_t1i)))) ]])
+        B_t = np.array([[np.cos(theta_ti) * dt, 0],
+                        [np.sin(theta_ti) * dt, 0 ],
+                        [0, v_ti * (1/d) * dt * (1/(np.square(np.cos(delta_ti)))) ]])
         
-        f_x_xt1 = np.array([[v_t1i*np.cos(theta_t1i) + x_ti- x_t1i], 
-                        [v_t1i*np.sin(theta_t1i) + y_ti - y_t1i], 
-                        [v_t1i*np.tan(delta_t1i)/d + theta_ti - theta_t1i]])
+        f_x_xt1 = np.array([[v_ti*np.cos(theta_ti) * dt + x_ti- x_t1i], 
+                        [v_ti*np.sin(theta_ti) * dt + y_ti - y_t1i], 
+                        [v_ti*np.tan(delta_ti)/d * dt + theta_ti - theta_t1i]])
 
         # Represent in homogenous coordinate systems
         A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
