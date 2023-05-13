@@ -144,16 +144,18 @@ traj_u = np.empty((max_iterations ,N, u_dim,1)) # Set initial trajectory to 0
 traj_u[:] = np.nan 
 
 # Guess control inputs for the first iteration
-traj_u[0,:,0,0] = 0.4 # speed for all timestamps
+traj_u[0,:,:,0] = 0 # speed for all timestamps
 # Set angle with 1s turn for (hopefully) 90 [deg]
-traj_u[0,0:38,1,0] = 0
-traj_u[0,38:40,1,0] = np.arctan(3.14*d/(0.5))
-traj_u[0,40:72,1,0] = 0
-traj_u[0,72:74,1,0] = np.arctan(3.14*d/(0.5))
-traj_u[0,74:163,1,0] = 0
-traj_u[0,163:165,1,0] = np.arctan(3.14*d/(0.5))
-traj_u[0,165:197,1,0] = 0
-traj_u[0,197:251,1,0] = np.arctan(3.14*d/(0.5))
+# traj_u[0,0:38,1,0] = 0
+# traj_u[0,38:40,1,0] = np.arctan(3.14*d/(0.5))
+# traj_u[0,40:72,1,0] = 0
+# traj_u[0,72:74,1,0] = np.arctan(3.14*d/(0.5))
+# traj_u[0,74:163,1,0] = 0
+# traj_u[0,163:165,1,0] = np.arctan(3.14*d/(0.5))
+# traj_u[0,165:197,1,0] = 0
+# traj_u[0,197:251,1,0] = np.arctan(3.14*d/(0.5))
+
+traj_u[:,N-1,:,0] = 0
 
 
 traj_u_ref[:] = 0
