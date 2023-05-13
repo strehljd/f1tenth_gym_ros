@@ -9,24 +9,7 @@ self_ref_traj = np.load(os.path.join('/Users/jstrehl/Documents/git/technion/f1te
 dt = 0.5
 
 # FUNCTIONS ###############################################################################################
-def linearize_dynamics(v_i, delta_i, theta_i, x_it1, y_it1, theta_it1, dt): 
-    # Calculate the linearized state-space equation based on the current u and state
-
-    # Linearization based on jacobian linearization
-    A_t = np.array([[1, 0, -v_i *np.sin(theta_i)*dt], [0, 1, v_i * np.cos(theta_i)*dt], [0, 0, 1]])
-    B_t = np.array([[np.cos(theta_i)*dt, 0],[np.sin(theta_i)*dt, 0 ], [np.tan(delta_i)*dt/d, v_i*dt/(d*np.cos(delta_i)*2)]])
-    f_x_xt1 = np.array([[v_i*np.cos(theta_i) - x_it1], [v_i*np.sin(theta_i) - y_it1], [v_i*np.tan(delta_i)/d - theta_it1]])
-
-    # Represent in homogenous coordinate systems
-    A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
-    #print("A_ht: {}".format(A_ht))
-    B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
-
-    return A_ht, B_ht  
- 
-def linearize_dynamics(x_ti ,y_ti ,theta_ti, delta_ti, v_ti, dt, d, x_t1i, y_t1i, theta_t1i, string): 
-    # Calculate the linearized state-space equation based on the current u and state
-    
+def linearize_dynamics(x_ti ,y_ti ,theta_ti, delta_ti, v_ti, dt, d, x_t1i, y_t1i, theta_t1i, v_t1i, delta_t1i, switch):
     # state, which the lineariztion is made "around"
     # x_t^i = x_ti
     # y_t^i = y_ti
@@ -42,29 +25,46 @@ def linearize_dynamics(x_ti ,y_ti ,theta_ti, delta_ti, v_ti, dt, d, x_t1i, y_t1i
     # State at (t+1)
     # x_{t+1}^i = x_t1i
     # y_{t+1}^i = y_t1i
-    # theta_{t+1}^i = theta_t1i
+    # theta_{t+1}^i = theta_t1i 
 
-    # Define the matriced based on a Taylor-Approximation
-    A_t = np.array([[1, 0, -v_ti * np.sin(theta_ti) * dt],
-                    [0, 1, v_ti * np.cos(theta_ti) * dt],
-                    [0, 0, 1]])
+    if switch: 
+        # Linearization as discused with Harrel
+        # Calculate the linearized state-space equation based on the current u and state
 
-    B_t = np.array([[np.cos(theta_ti) * dt, 0],
-                    [np.sin(theta_ti) * dt, 0 ],
-                    [np.tan(delta_ti) * dt * (1/d), v_ti * (1/d) * dt * (1/(np.square(np.cos(delta_ti)))) ]])
-    
+        # Linearization based on jacobian linearization
+        A_t = np.eye(3)
+        B_t = np.array([ [ dt*np.cos(theta_ti) , 0 ],
+                        [ dt*np.sin(theta_ti) , 0 ],
+                        [ 0,         v_ti * (1/d) * dt * (1/(np.square(np.cos(delta_ti))))         ]  ])
+        f_x_xt1 = np.array([ [v_ti*np.cos(theta_ti) - x_t1i      ],
+                            [v_ti*np.sin(theta_ti) - y_t1i      ],
+                            [v_ti*np.tan(delta_ti)/d - theta_t1i]])
 
-    
-    f_x_xt1 = np.array([[v_ti*np.cos(theta_ti) + x_ti - x_t1i], 
-                        [v_ti*np.sin(theta_ti) + y_ti - y_t1i], 
-                        [v_ti*np.tan(delta_ti)/d + theta_ti- theta_t1i]])
+        # Represent in homogenous coordinate systems
+        A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
+        # print("A_ht: {}".format(A_ht))
+        B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
+    else:    
+        #Linearization as proposed by jan
+        # Define the matriced based on a Taylor-Approximation
+        A_t = np.array([[1, 0, -v_t1i * np.sin(theta_t1i) * dt],
+                        [0, 1, v_t1i * np.cos(theta_t1i) * dt],
+                        [0, 0, 1]])
+        
+        B_t = np.array([[np.cos(theta_t1i) * dt, 0],
+                        [np.sin(theta_t1i) * dt, 0 ],
+                        [0, v_t1i * (1/d) * dt * (1/(np.square(np.cos(delta_t1i)))) ]])
+        
+        f_x_xt1 = np.array([[v_t1i*np.cos(theta_t1i) + x_ti- x_t1i], 
+                        [v_t1i*np.sin(theta_t1i) + y_ti - y_t1i], 
+                        [v_t1i*np.tan(delta_t1i)/d + theta_ti - theta_t1i]])
 
-    # Represent in homogenous coordinate systems
-    A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
-    #print("A_ht: {}".format(A_ht))
-    B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
+        # Represent in homogenous coordinate systems
+        A_ht = np.append(np.concatenate((A_t,f_x_xt1), axis=1), [[0,0,0,1]], axis=0)
+        #print("A_ht: {}".format(A_ht))
+        B_ht = np.append(np.concatenate((B_t, np.array([[0,0,0]]).T), axis=1), [[0,0,1]], axis=0)
 
-    return A_ht, B_ht   
+    return A_ht, B_ht  
 
 def add_theta(traj_x, ref=False):
     # Calculate theta_ref based on the tangent between the current and the next waypoint
