@@ -187,7 +187,8 @@ for i in range(max_iterations-1):
         R_hom[i,t,:,:] = get_R_hom(traj_u, traj_u_ref, R, i, t)
     
     # Final Cost
-    P_hom[i,N-1,:,:] = get_Q_hom(traj_x, traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
+    # P_hom[i,N-1,:,:] = get_Q_hom(traj_x, traj_x_ref, Qf, i, N-1) # N-1 as we start counting with 0
+    P_hom[:,N-1,:,:] = np.append(np.concatenate((Qf,[[0],[0],[0]]), axis=1), [[0,0,0,1]], axis=0)
     
     
     ####### Backward pass
