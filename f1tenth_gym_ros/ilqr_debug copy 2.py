@@ -191,9 +191,8 @@ for i in range(max_iterations-1):
     
     
     ####### Backward pass
-
     for t in range(N-2,current_timestep-1,-1): # N-2 as we set the last and we start counting with 0
-        A_bw, B_bw = linearize_dynamics(traj_x[i,t,0,0], traj_x[i,t,1,0], traj_x[i,t,2,0], traj_u[i, t, 1,0], traj_u[i, t, 0,0], dt, d, traj_x[i,t+1,0,0], traj_x[i,t+1,1,0], traj_x[i,t+1,2,0], "Hello world" ) # Calculate A, B and f
+        A_bw, B_bw = linearize_dynamics(traj_x[i,t,0,0], traj_x[i,t,1,0], traj_x[i,t,2,0], traj_u[i, t, 1,0], traj_u[i, t, 0,0], dt, d, traj_x[i,t+1,0,0], traj_x[i,t+1,1,0], traj_x[i,t+1,2,0], traj_u[i, t+1, 1,0], traj_u[i, t+1, 0,0], False) # Calculate A, B and f
         Q_bw = Q_hom[i,t,:,:]
         R_bw = R_hom[i,t,:,:]
         P_bwt1 = P_hom[i,t+1,:,:]
