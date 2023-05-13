@@ -206,16 +206,18 @@ for i in range(max_iterations-1):
     ####### Forward pass
     for t in range(current_timestep,N-1,1):
     # Calculate new u
-        u_fp = traj_u[i,t,:,0]
-        K_fp = K_hom[i,t,:,:]
         x_diff = np.append(np.array([traj_x[i+1,t,:,0]-traj_x[i,t,:,0]]).T, [[1]], axis=0)
-        traj_u[i+1,t,:,0] = u_fp + (K_fp @ x_diff)[:2,0]
+        u_new = (K_hom[i,t,:,:] @ x_diff)
+        u_new /= u_new[2] # Setting the last value to 1 -> Allow to extract "non-homogenus" coordinates
 
-    # Calculate new x 
-    # Why did u use dt here? This should be the nonlinear model! -> removed dt and changed +xi instead of +xi+1
-        x_new = np.array([[traj_u[i+1,t,0,0]*np.cos(traj_x[i+1,t,2,0]) + traj_x[i+1,t,0,0]],
-                            [traj_u[i+1,t,0,0]*np.sin(traj_x[i+1,t,2,0]) + traj_x[i+1,t,1,0]],
-                            [traj_u[i+1,t,0,0]*np.tan(traj_u[i+1,t,1,0])/d + traj_x[i+1,t,2,0]]])
+        traj_u[i+1,t,:,0] = traj_u[i,t,:,0] + u_new[0:2,0]
+        traj_u[i+1,t,1,0]= np.clip(traj_u[i+1,t,1,0], -np.pi/2, np.pi/2) #Allow only possible steering angles (steerin_angel element of (-pi/2, pi/2) )
+
+        # Calculate new x 
+        # Why did u use dt here? This should be the nonlinear model! -> removed dt and changed +xi instead of +xi+1
+        x_new = np.array([[traj_u[i+1,t,0,0]*np.cos(traj_x[i+1,t,2,0]) * dt + traj_x[i+1,t,0,0]],
+                            [traj_u[i+1,t,0,0]*np.sin(traj_x[i+1,t,2,0]) * dt + traj_x[i+1,t,1,0]],
+                            [traj_u[i+1,t,0,0]*np.tan(traj_u[i+1,t,1,0])/d  * dt + traj_x[i+1,t,2,0]]])
         traj_x[i+1,t+1,:,:] = x_new
         
     for t in range(N):
