@@ -77,16 +77,16 @@ def add_theta(traj_x, ref=False):
 
 def get_Q_hom(traj_x, traj_x_ref, Q, i, t):
     x_diff = np.array([traj_x[i,t,:,0]-traj_x_ref[t,:,0]]).T
-    Q_hom_12 = Q @ x_diff
-    Q_hom_21 = x_diff.T @ Q
-    Q_hom_22 = x_diff.T @ x_diff     
+    Q_hom_12 = 2 * Q @ x_diff
+    Q_hom_21 =  2* x_diff.T @ Q
+    Q_hom_22 = x_diff.T @ Q @ x_diff     
     return np.concatenate((np.vstack((Q,Q_hom_21)),np.vstack((Q_hom_12,Q_hom_22))), axis=1)
 
 def get_R_hom(traj_u, traj_u_ref, R, i, t):
     u_diff = np.array([traj_u[i,t,:,0]-traj_u_ref[t,:,0]]).T
-    R_hom_12 = R @ u_diff
-    R_hom_21 = u_diff.T
-    R_hom_22 = u_diff.T @ u_diff
+    R_hom_12 = 2* R @ u_diff
+    R_hom_21 = 2 * u_diff.T
+    R_hom_22 = u_diff.T @ R @ u_diff
     return np.concatenate((np.vstack((R,R_hom_21)),np.vstack((R_hom_12,R_hom_22))), axis=1)
 
 def get_cost(traj_x, traj_x_ref, traj_u, traj_u_ref, Q_hom, R_hom, i, t):
