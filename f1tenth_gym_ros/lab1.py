@@ -72,8 +72,10 @@ class Lab1(Node):
 
         self.integral_e_theta = 0
         self.previous_e_theta = 0
+        self.integral = np.zeros((2,1,1))
 
         self.previous_pose = np.zeros((3,1))
+        self.previous_error = np.zeros((3,1,1))
 
 
         self.x_plot = np.zeros((10 ,252, 3,1))
@@ -173,150 +175,84 @@ class Lab1(Node):
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
 
+
+        # Preallocate variables
+        u = np.zeros((2,1,1))
+        e = np.zeros((3,1,1))
+        e_dot = np.zeros((3,1,1))
+        proportional = np.zeros((2,1,1))
+        derivative = np.zeros((2,1,1))
+
+        # Tuning
+        Kp = np.array([[-1,0,5e-2],
+                       [0,1,0]])
+        Ki = np.array([[0,0,5e-2],
+                       [0,1e-5,0]])
+        Kd = np.array([[0,0,0],
+                       [0,1,0]])
+
         # Parameters
         dt = 0.5 # Simulation timesteps
         d = 0.018 # TODO TODO wheel-lenght of the car
         max_speed = 0.5 # Output limit according to ROS simulation (0.5 m/s)
-        max_angle = 3.14/3 # Output limit according to a "normal car" -> steering angle >90deg is not feasible
+        max_angle = 1.57 # Output limit according to a "normal car" -> steering angle >90deg is not feasible
 
-        # Set reference
-        ## Get waypoints from reference trajectory
-        wp_number = self.waypoint_index; 
-        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
-        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
+        # Get reference trajectory
+        current_wp = self.ref_traj[self.waypoint_index % len(self.ref_traj)]
+        next_wp = self.ref_traj[(self.waypoint_index+1) % len(self.ref_traj)]
+        # Compute reference theta
+        theta_ref = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
 
-        ## Advance reference
-        self.get_ref_pos()
-
-        x_ref = current_wp[0]
-        y_ref = current_wp[1]
-        theta_ref  =  np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
-
-
-
-        # Compute error terms
-        error = self.setpoint - input_
-        d_input = input_ - (self._last_input if (self._last_input is not None) else input_)
-        d_error = error - (self._last_error if (self._last_error is not None) else error)
-
-        # Check if must map the error
-        if self.error_map is not None:
-            error = self.error_map(error)
-
-        # Compute the proportional term
-        if not self.proportional_on_measurement:
-            # Regular proportional-on-error, simply set the proportional term
-            self._proportional = self.Kp * error
-        else:
-            # Add the proportional error on measurement to error_sum
-            self._proportional -= self.Kp * d_input
-
-        # Compute integral and derivative terms
-        self._integral += self.Ki * error * dt
-        self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
-
-        if self.differential_on_measurement:
-            self._derivative = -self.Kd * d_input / dt
-        else:
-            self._derivative = self.Kd * d_error / dt
-
-        # Compute final output
-        output = self._proportional + self._integral + self._derivative
-        output = _clamp(output, self.output_limits)
-
-        # Keep track of state
-        self._last_output = output
-        self._last_input = input_
-        self._last_error = error
-        self._last_time = now
-
-
-
-        # Set current pose
-        theta  = pose[2]
-
-        x_dot = (pose[0] - self.previous_pose[0])/dt
-        y_dot = (pose[1] - self.previous_pose[1])/dt
-        velocity = np.sqrt(np.square(x_dot) + np.square(y_dot))
-        ## Set historian
-        self.previous_pose = pose
-
- 
-
-
-        # Preallocate variables
-        u = np.zeros((2,1,1))
-        e = np.zeros((2,1,1))
-        e_dot = np.zeros((2,1,1))
-        e_int = np.zeros((2,1,1))
-
-
-        # Calculate error values
-        ## Theta error 
-        ### Project the yaw to full angle range (-2pi, pi)
+        # Error term
+        # Project the yaw to full angle range (-2pi, pi)
         yaw_projected = pose[2]
         if theta_ref >= 3.12 and theta_ref <= 3.16 and pose[2]<0:
             yaw_projected = 2*np.pi+pose[2]
         else:
             yaw_projected = pose[2]
-        theta_e = np.clip(theta_ref - yaw_projected, -np.pi, np.pi)
 
-        ## along track error
-        e[0,0,0] = self.current_along_track_error
-        e_dot[0,0,0] = (self.current_along_track_error - self.previous_along_track_error)/dt
-        # based on the lecture it should be: velocity* np.cos(theta_e)
+        theta_e = np.clip(theta_ref - yaw_projected, -2*np.pi, 2*np.pi)
 
-        ## cross track error
-        e[1,0,0] = theta_e
-        e_dot[1,0,0] = (self.current_cross_track_error - self.previous_cross_track_error)/dt
-        # based on the lecture it should be: velocity* np.sin(theta_e)
+        # Compute error terms
+        e[0,0,0] = theta_e
+        e[1,0,0] = self.current_along_track_error
+        e[2,0,0] = self.current_cross_track_error
+        e_dot[:,:,0] = (self.previous_error[:,:,0] - e_dot[:,:,0] ) /dt
         
-        ## Set historian
-        self.previous_cross_track_error = self.current_cross_track_error
-        self.previous_along_track_error = self.current_along_track_error
+        proportional[:,:,0] = Kp @ e[:,:,0]
 
-        # TODO: Integrator wind up -> add clamping
+        # Compute integral and derivative terms
+        self.integral[:,:,0] += Ki @ e[:,:,0] * dt
+        self.integral[0,0,0] = np.clip(self.integral[0,0,0],-max_angle, max_angle,)  # Avoid integral windup
+        self.integral[1,0,0] = np.clip(self.integral[1,0,0],-max_speed, max_speed,)  # Avoid integral windup
 
-        # Tuning parameters
-        p = 1
-        i = 0
-        d = 0.05
+        if self.waypoint_index == 0: 
+            # no previous errror
+            derivative[:,:,0] = Kd @ e[:,:,0]
+        else:
+            derivative[:,:,0] = Kd @ e_dot[:,:,0] / dt
 
-        K_p = p * np.array([[0,-1],[1,-0.02]])
-        K_d = d * np.array([[0,-1],[1,-0.02]])
-        K_i = i * np.array([[0,-1],[1,-0.02]])
+        # Compute final output
+        u[:,:,:] = -(proportional + self.integral + derivative)
+        u[0,0,0] = np.clip(u[0,0,0], -max_angle, max_angle) 
+        u[1,0,0] = np.clip(u[1,0,0], -max_speed, max_speed) 
 
-        # MIMO PID-controler
-        u[:,:,0] = -(K_p @ e[:,:,0] + K_d @ e_dot[:,:,0])
+        # Keep track of state
+        self.previous_pose = pose
+        # Keep track of errors
+        self.previous_error = e
 
-        ## Calculate integration part
-        max_integrator = 1
-        e_int[0,0,0] = self.integral_cross_track_error
-        e_int[1,0,0] = self.integral_along_track_error
-
-        self.integral_cross_track_error += (dt * K_i @ e_int[:,:,0])[0,0]
-        self.integral_cross_track_error = np.clip(-max_integrator, max_integrator,self.integral_cross_track_error)  # Avoid integral windup
-
-        self.integral_along_track_error += (dt * K_i @ e_int[:,:,0])[1,0]
-        self.integral_along_track_error = np.clip(-max_integrator, max_integrator,self.integral_along_track_error)  # Avoid integral windup
-        
-        ## Add to controler
-        u[1,0,0] -= self.integral_along_track_error
-        u[0,0,0] -= self.integral_cross_track_error
-
-        # Clamp to output limits
-        u[1,0,0] = np.clip(-max_speed, max_speed, u[1,0,0])
-        u[0,0,0] = np.clip(-max_angle, max_angle, u[0,0,0])
+        # self.get_ref_pos() # advance wp index
 
 
-        print("e_ct: ", self.current_cross_track_error, " e_at: ", self.current_along_track_error)
-        print("e_ct_dot:", e_dot[1,0,0], " e_at_dot", e_dot[0,0,0])
-        print("e_ct_intt:", e_int[1,0,0], " e_at_int", e_int[0,0,0])
+        print("--- Cycle", self.waypoint_index," ---")
+        print("error:")
+        print(e)
+        print("u:")
+        print(u)
 
         # Unicycle
         u[0,0,0] = u[0,0,0]
-        print("Unicycle: angle", u[0,0,0], " speed",u[1,0,0] )
-        print("--- New cycle ----")
 
         # print("----")
         # # Ackermann
@@ -336,6 +272,7 @@ class Lab1(Node):
         wp_number = self.waypoint_index; 
         current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
         next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
+
 
         # Compute reference theta
         theta_r = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
