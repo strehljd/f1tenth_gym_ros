@@ -175,7 +175,11 @@ class Lab1(Node):
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
 
-
+        raise NotImplementedError
+    
+    def pid_unicycle_control(self, pose):
+        #### YOUR CODE HERE ####
+        
         # Preallocate variables
         u = np.zeros((2,1,1))
         e = np.zeros((3,1,1))
@@ -260,105 +264,6 @@ class Lab1(Node):
         # print("Ackermann: angle", u[0,0,0], " speed",u[1,0,0] )
         
         return np.array([u[0,0,0], u[1,0,0]])
-        #### END OF YOUR CODE ####
-        raise NotImplementedError
-    
-    def pid_unicycle_control(self, pose):
-        #### YOUR CODE HERE ####
-        #param
-        d_t = 0.5
-
-        # Get reference trajectory
-        wp_number = self.waypoint_index; 
-        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
-        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
-
-
-        # Compute reference theta
-        theta_r = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
-
-        # Transform waypoints into robot frame
-        R = np.array([[np.cos(theta_r), -np.sin(theta_r)], [np.sin(theta_r), np.cos(theta_r)]])
-        current_wp = np.matmul(R,current_wp)
-        next_wp = np.matmul(R,next_wp)
-
-        # Reference values (dotx_r, doty_r, theta_r)
-        dotx_r = (next_wp[0] - current_wp[0])/d_t # Reference velocity in x-direction
-        doty_r = (next_wp[1] - current_wp[1])/d_t # Reference velocity in y-direction
-
-        # Error term
-        # Project the yaw to full angle range (-2pi, pi)
-        yaw_projected = pose[2]
-
-        #e_theta = theta_r - theta
-
-        if theta_r >= 3.12 and theta_r <= 3.16 and pose[2]<0:
-            yaw_projected = 2*np.pi+pose[2]
-        else:
-            yaw_projected = pose[2]
-
-        e_theta = np.clip(theta_r - yaw_projected, -np.pi, np.pi)
-        print("Theta_ref:", str(theta_r), "; Yaw: ",str(yaw_projected), "; Error: ",str(e_theta))
-
-
-        # PID for the heading error
-        K = 1
-        K_p= 1
-        K_i = 0.0005
-        K_d = 0.8
-
-        P_a = K_p * self.previous_e_theta
-        I_a = self.integral_e_theta + K_i * self.previous_e_theta*d_t
-        D_a = K_d * (e_theta - self.previous_e_theta)/d_t
-    
-        steering_angle = (P_a + I_a + D_a)
-
-        # Velocity based on reference trajectory
-        speed = np.linalg.norm([dotx_r, doty_r])
-
-        # Set historian
-        self.previous_e_theta = e_theta
-        self.integral_e_theta =+ I_a
-        print("I_a: "+ str(I_a))
-
-        return np.array([steering_angle, speed])
-        #### END OF YOUR CODE ####
-        raise NotImplementedError
-    
-    def pure_pursuit_control(self, pose):
-        #### YOUR CODE HERE ####
-        
-        d = 0.0381
-        d_t = 0.5
-        u = np.array([0.5,0.2])
-        L = d
-
-        print("Pose_ROS    ", str(pose))
-        print("---------------------")
-        
-        row_1 = [u[0]*np.cos(pose[2]) + pose[0]]
-        row_2 = [u[0]*np.sin(pose[2]) + pose[1]]
-        row_3 = [u[0]*np.tan(u[1]/d)  + pose[2]]
-        new_pose_nonlinear_jannis = np.concatenate((row_1,row_2,row_3),axis=0)
-        print("NextPose Jan", new_pose_nonlinear_jannis)
-
-        row_1 = [u[0] * d_t * np.cos(pose[2]+ u[0]*np.tan(u[1])/(4*L))  + pose[0]]
-        row_2 = [u[0] * d_t * np.sin(pose[2] + u[0]*np.tan(u[1])/(4*L)) + pose[1]]
-        row_3 = [u[0] * d_t * np.tan(u[1])/L  + pose[2]]
-        new_pose_nonlinear_jannis = np.concatenate((row_1,row_2,row_3),axis=0)
-        print("NextPose Dän", new_pose_nonlinear_jannis)
-
-
-        A_t = np.array([[1, 0, -u[0] *np.sin(pose[2])], [0, 1, u[0] * np.cos(pose[2])], [0, 0, 1]])
-        B_t = np.array([[np.cos(pose[2]), 0],[np.sin(pose[2]), 0 ], [np.tan(u[1])/d, u[0]/(d* np.square(np.cos(u[1]))) ]])
-        
-        new_pose_nonlinear_jannis = A_t @  np.array([pose]).T + B_t @ np.array([u]).T
-        print("NextPose Lin", new_pose_nonlinear_jannis.T)
-
-
-        return np.array([u[1], u[0]])
-        #### YOUR CODE HERE ####    
-        # return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
         
