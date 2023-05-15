@@ -161,17 +161,6 @@ class Lab1(Node):
         cmd.drive.speed = u[1]
         self.cmd_pub.publish(cmd)
 
-        # track = np.transpose(self.ref_traj, (1,0))
- 
-        # fig, ax = plt.subplots()
-        # ax.plot(track[:][0], track[:][1], label = "reference trajectory")
-        # ax.plot(self.x_plot[:,0], self.x_plot[:,1], label = "ilqr trajectory")
-        # ax.set_xlabel("x")
-        # ax.set_ylabel("y")
-        # plt.legend()
-        # plt.show()
-        # print("this is your plot :)")
-
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
 
