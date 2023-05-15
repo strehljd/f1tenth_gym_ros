@@ -112,13 +112,13 @@ N = len(self_ref_traj) # number of timesteps in the reference trajectory
 max_iterations = 10 # (max) number of max_iterations
 q = 1 # tuning parameter for q -> state penalty
 qf = 1 # tuning parameter for final q
-r = 1.5 # tunign parameter for u -> control action penalty
+r = 0 # tunign parameter for u -> control action penalty
 cost_criteria = 1
 #   #   #   #   #   #   #   #   #   #   #   #   #   #   #
 
 ## Cost function
-Q = q * np.array([[1,0,0],[0,1,0],[0,0,3]])
-Qf = qf * np.array([[1,0,0],[0,1,0],[0,0,3]])
+Q = q * np.array([[1,0,0],[0,1,0],[0,0,0]])
+Qf = qf * np.array([[1,0,0],[0,1,0],[0,0,1]])
 R = r * np.array([[2,0],[0,1]])
 
 ## Preallocate matrices
@@ -135,8 +135,39 @@ P_hom[:] = np.nan
 K_hom = np.empty((max_iterations ,N, u_dim+1, s_dim+1))
 K_hom[:] = np.nan
 
+# Define the two points that the ellipse passes through
+p1 = np.array([9.5, -4.25])
+p2 = np.array([-13.5, -4.25])
+
+# Calculate the center of the ellipse
+center = (p1 + p2) / 2
+
+# Calculate the major and minor axis of the ellipse
+a = np.linalg.norm(p1 - p2) / 2
+b = 5
+
+# Define the number of steps in the trajectory
+N = 252
+
+# Create the parameter t that varies from 0 to 2*pi
+t = np.linspace(0, 2*np.pi, N)
+
+# Calculate the x and y coordinates of the ellipse
+x = center[0] + a*np.cos(t)
+y = center[1] + b*np.sin(t)
+
+# Shift the trajectory so that it starts at (0,0)
+x -= x[0]
+y -= y[0]
+# Define the ellipse parameters
+elipse_traj = np.array((x,y)).T
+# Define the parameters of the ellipse
+
+
+
+
 ## Set up reference trajectory TODO Check if it stays the same all the time -> I would say yes :)
-traj_x_ref[:,0:2,0] = self_ref_traj 
+traj_x_ref[:,0:3,0] = np.concatenate((elipse_traj,np.zeros((N,1))),axis=1)
 traj_x_ref = add_theta(traj_x_ref, ref=True)
 
 # Initialize algorithm - First iteration
@@ -208,11 +239,11 @@ for i in range(max_iterations-1):
     # Calculate new u
         x_diff = np.append(np.array([traj_x[i+1,t,:,0]-traj_x[i,t,:,0]]).T, [[1]], axis=0)
         u_new = (K_hom[i,t,:,:] @ x_diff)
-        u_new /= u_new[2] # Setting the last value to 1 -> Allow to extract "non-homogenus" coordinates
+        # u_new /= u_new[2] # Setting the last value to 1 -> Allow to extract "non-homogenus" coordinates
 
         traj_u[i+1,t,:,0] = traj_u[i,t,:,0] + u_new[0:2,0]
-        traj_u[i+1,t,1,0]= np.clip(traj_u[i+1,t,1,0], -np.pi/2, np.pi/2) #Allow only possible steering angles (steerin_angel element of (-pi/2, pi/2) )
-
+        traj_u[i+1,t,1,0]= (traj_u[i+1,t,1,0] + np.pi/2) % (np.pi) - np.pi/2
+        
         # Calculate new x 
         # Why did u use dt here? This should be the nonlinear model! -> removed dt and changed +xi instead of +xi+1
         x_new = np.array([[traj_u[i+1,t,0,0]*np.cos(traj_x[i+1,t,2,0]) * dt + traj_x[i+1,t,0,0]],
