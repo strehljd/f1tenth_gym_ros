@@ -164,6 +164,87 @@ class Lab1(Node):
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
 
+        # Preallocate variables
+        u = np.zeros((2,1,1))
+        e = np.zeros((3,1,1))
+        e_dot = np.zeros((3,1,1))
+        proportional = np.zeros((2,1,1))
+        derivative = np.zeros((2,1,1))
+
+        # Tuning
+        Kp = np.array([[-1,0,5e-2],
+                       [0,1,0]])
+        Ki = np.array([[0,0,5e-3],
+                       [0,1e-5,0]])
+        Kd = np.array([[-10,0,1e-2],
+                       [0,1,0]])
+
+        # Parameters
+        dt = 0.5 # Simulation timesteps
+        d = 0.0381 # wheel-lenght of the car
+        max_speed = 0.5 # Output limit according to ROS simulation (0.5 m/s)
+        max_angle = 10*np.pi # Output limit according to a "normal car" -> steering angle >90deg is not feasible
+
+        # Get reference trajectory
+        current_wp = self.ref_traj[self.waypoint_index % len(self.ref_traj)]
+        next_wp = self.ref_traj[(self.waypoint_index+1) % len(self.ref_traj)]
+        # Compute reference theta
+        theta_ref = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
+
+        # Error term
+        # Project the yaw to full angle range (-2pi, pi)
+        yaw_projected = pose[2]
+        if theta_ref >= 3.12 and theta_ref <= 3.16 and pose[2]<0:
+            yaw_projected = 2*np.pi+pose[2]
+        else:
+            yaw_projected = pose[2]
+
+        theta_e = np.clip(theta_ref - yaw_projected, -2*np.pi, 2*np.pi)
+
+        # Compute error terms
+        e[0,0,0] = theta_e
+        e[1,0,0] = self.current_along_track_error
+        e[2,0,0] = self.current_cross_track_error
+        e_dot[:,:,0] = (self.previous_error[:,:,0] - e_dot[:,:,0] ) /dt
+        
+        proportional[:,:,0] = Kp @ e[:,:,0]
+
+        # Compute integral and derivative terms
+        self.integral[:,:,0] += Ki @ e[:,:,0] * dt
+        self.integral[0,0,0] = np.clip(self.integral[0,0,0],-max_angle, max_angle,)  # Avoid integral windup
+        self.integral[1,0,0] = np.clip(self.integral[1,0,0],-max_speed, max_speed,)  # Avoid integral windup
+
+        if self.waypoint_index == 0: 
+            # no previous errror
+            derivative[:,:,0] = Kd @ e[:,:,0]
+        else:
+            derivative[:,:,0] = Kd @ e_dot[:,:,0] / dt
+
+        # Compute final output
+        u[:,:,:] = -(proportional + self.integral + derivative)
+        u[0,0,0] = np.clip(u[0,0,0], -max_angle, max_angle) 
+        u[1,0,0] = np.clip(u[1,0,0], -max_speed, max_speed) 
+
+        # Keep track of state
+        self.previous_pose = pose
+        # Keep track of errors
+        self.previous_error = e
+
+        # self.get_ref_pos() # advance wp index
+
+
+        print("--- Cycle", self.waypoint_index," ---")
+        print("error:")
+        print(e)
+        print("u:")
+        print(u)
+
+
+        # Ackermann
+        u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])        
+        return np.array([u[0,0,0], u[1,0,0]])
+        #### END OF YOUR CODE ####
+
         raise NotImplementedError
     
     def pid_unicycle_control(self, pose):
