@@ -73,6 +73,8 @@ class Lab1(Node):
         self.integral_e_theta = 0
         self.previous_e_theta = 0
 
+        self.previous_pose = np.zeros((3,1))
+
 
         self.x_plot = np.zeros((10 ,252, 3,1))
     
@@ -111,8 +113,8 @@ class Lab1(Node):
         self.current_along_track_error = along_track_error
         
         # log the accumulated error to screen and internally to be printed at the end of the run
-        self.get_logger().info("Cross Track Error: " + str(cross_track_error))
-        self.get_logger().info("Along Track Error: " + str(along_track_error))
+        # self.get_logger().info("Cross Track Error: " + str(cross_track_error))
+        # self.get_logger().info("Along Track Error: " + str(along_track_error))
         self.cross_track_accumulated_error += abs(cross_track_error)
         self.along_track_accumulated_error += abs(along_track_error)
         
@@ -170,50 +172,158 @@ class Lab1(Node):
 
     def pid_control(self, pose):
         #### YOUR CODE HERE ####
-        # Here two PID controllers are used. The first controls the speed based on the along_track error. The second controls the steering_angle based on the cross_treack error.
+
+        # Parameters
+        dt = 0.5 # Simulation timesteps
+        d = 0.018 # TODO TODO wheel-lenght of the car
+        max_speed = 0.5 # Output limit according to ROS simulation (0.5 m/s)
+        max_angle = 3.14/3 # Output limit according to a "normal car" -> steering angle >90deg is not feasible
+
+        # Set reference
+        ## Get waypoints from reference trajectory
+        wp_number = self.waypoint_index; 
+        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
+        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
+
+        ## Advance reference
+        self.get_ref_pos()
+
+        x_ref = current_wp[0]
+        y_ref = current_wp[1]
+        theta_ref  =  np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
 
 
-        d_t = 0.5
-        # Speed-Controller
-        ## PID parameters
-        K_s = 0.5
-        K_ps = 0.6 * K_s
-        K_is = 0.075 * K_s
-        K_ds = 0.5 * K_s
 
-        P_s = K_ps * self.current_along_track_error
-        I_s = self.integral_along_track_error + K_is*self.current_along_track_error*d_t
-        D_s = K_ds * (self.current_along_track_error - self.previous_along_track_error)/d_t
+        # Compute error terms
+        error = self.setpoint - input_
+        d_input = input_ - (self._last_input if (self._last_input is not None) else input_)
+        d_error = error - (self._last_error if (self._last_error is not None) else error)
 
-        u_s = -(P_s + I_s + D_s)
+        # Check if must map the error
+        if self.error_map is not None:
+            error = self.error_map(error)
 
-        self.previous_along_track_error = self.current_along_track_error
-        self.integral_along_track_error =+ I_s
+        # Compute the proportional term
+        if not self.proportional_on_measurement:
+            # Regular proportional-on-error, simply set the proportional term
+            self._proportional = self.Kp * error
+        else:
+            # Add the proportional error on measurement to error_sum
+            self._proportional -= self.Kp * d_input
+
+        # Compute integral and derivative terms
+        self._integral += self.Ki * error * dt
+        self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
+
+        if self.differential_on_measurement:
+            self._derivative = -self.Kd * d_input / dt
+        else:
+            self._derivative = self.Kd * d_error / dt
+
+        # Compute final output
+        output = self._proportional + self._integral + self._derivative
+        output = _clamp(output, self.output_limits)
+
+        # Keep track of state
+        self._last_output = output
+        self._last_input = input_
+        self._last_error = error
+        self._last_time = now
 
 
-        # Angle-Controller
-        ## PID parameters
-        K_a = 5
-        K_pa = 0.25 * K_a
-        K_ia = 0.0075 * K_a
-        K_da = 1.5 * K_a
 
-        P_a = K_pa * self.current_cross_track_error
-        I_a = self.integral_cross_track_error + K_ia * self.current_cross_track_error*d_t
-        D_a = K_da * (self.current_cross_track_error - self.previous_cross_track_error)/d_t
-    
-        u_a = -(P_a + I_a + D_a)
+        # Set current pose
+        theta  = pose[2]
 
-        self.previous_cross_track_error = self.current_cross_track_error
-        self.integral_cross_track_error =+ I_a
+        x_dot = (pose[0] - self.previous_pose[0])/dt
+        y_dot = (pose[1] - self.previous_pose[1])/dt
+        velocity = np.sqrt(np.square(x_dot) + np.square(y_dot))
+        ## Set historian
+        self.previous_pose = pose
 
-        # Set control output
-        steering_angle = u_a
-        speed = u_s
+ 
 
-        self.get_logger().info("angle: " + str(steering_angle))
+
+        # Preallocate variables
+        u = np.zeros((2,1,1))
+        e = np.zeros((2,1,1))
+        e_dot = np.zeros((2,1,1))
+        e_int = np.zeros((2,1,1))
+
+
+        # Calculate error values
+        ## Theta error 
+        ### Project the yaw to full angle range (-2pi, pi)
+        yaw_projected = pose[2]
+        if theta_ref >= 3.12 and theta_ref <= 3.16 and pose[2]<0:
+            yaw_projected = 2*np.pi+pose[2]
+        else:
+            yaw_projected = pose[2]
+        theta_e = np.clip(theta_ref - yaw_projected, -np.pi, np.pi)
+
+        ## along track error
+        e[0,0,0] = self.current_along_track_error
+        e_dot[0,0,0] = (self.current_along_track_error - self.previous_along_track_error)/dt
+        # based on the lecture it should be: velocity* np.cos(theta_e)
+
+        ## cross track error
+        e[1,0,0] = theta_e
+        e_dot[1,0,0] = (self.current_cross_track_error - self.previous_cross_track_error)/dt
+        # based on the lecture it should be: velocity* np.sin(theta_e)
         
-        return np.array([steering_angle, speed])
+        ## Set historian
+        self.previous_cross_track_error = self.current_cross_track_error
+        self.previous_along_track_error = self.current_along_track_error
+
+        # TODO: Integrator wind up -> add clamping
+
+        # Tuning parameters
+        p = 1
+        i = 0
+        d = 0.05
+
+        K_p = p * np.array([[0,-1],[1,-0.02]])
+        K_d = d * np.array([[0,-1],[1,-0.02]])
+        K_i = i * np.array([[0,-1],[1,-0.02]])
+
+        # MIMO PID-controler
+        u[:,:,0] = -(K_p @ e[:,:,0] + K_d @ e_dot[:,:,0])
+
+        ## Calculate integration part
+        max_integrator = 1
+        e_int[0,0,0] = self.integral_cross_track_error
+        e_int[1,0,0] = self.integral_along_track_error
+
+        self.integral_cross_track_error += (dt * K_i @ e_int[:,:,0])[0,0]
+        self.integral_cross_track_error = np.clip(-max_integrator, max_integrator,self.integral_cross_track_error)  # Avoid integral windup
+
+        self.integral_along_track_error += (dt * K_i @ e_int[:,:,0])[1,0]
+        self.integral_along_track_error = np.clip(-max_integrator, max_integrator,self.integral_along_track_error)  # Avoid integral windup
+        
+        ## Add to controler
+        u[1,0,0] -= self.integral_along_track_error
+        u[0,0,0] -= self.integral_cross_track_error
+
+        # Clamp to output limits
+        u[1,0,0] = np.clip(-max_speed, max_speed, u[1,0,0])
+        u[0,0,0] = np.clip(-max_angle, max_angle, u[0,0,0])
+
+
+        print("e_ct: ", self.current_cross_track_error, " e_at: ", self.current_along_track_error)
+        print("e_ct_dot:", e_dot[1,0,0], " e_at_dot", e_dot[0,0,0])
+        print("e_ct_intt:", e_int[1,0,0], " e_at_int", e_int[0,0,0])
+
+        # Unicycle
+        u[0,0,0] = u[0,0,0]
+        print("Unicycle: angle", u[0,0,0], " speed",u[1,0,0] )
+        print("--- New cycle ----")
+
+        # print("----")
+        # # Ackermann
+        # u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])
+        # print("Ackermann: angle", u[0,0,0], " speed",u[1,0,0] )
+        
+        return np.array([u[0,0,0], u[1,0,0]])
         #### END OF YOUR CODE ####
         raise NotImplementedError
     
@@ -280,68 +390,37 @@ class Lab1(Node):
     
     def pure_pursuit_control(self, pose):
         #### YOUR CODE HERE ####
-        #param
+        
+        d = 0.0381
         d_t = 0.5
+        u = np.array([0.5,0.2])
+        L = d
 
-        # Get reference trajectory
-        wp_number = self.waypoint_index; 
-        current_wp = self.ref_traj[wp_number % len(self.ref_traj)]
-        next_wp = self.ref_traj[(wp_number+1) % len(self.ref_traj)]
-
-        # Compute reference theta
-        theta_r = np.arctan2(next_wp[1]-current_wp[1], next_wp[0]-current_wp[0])
-
-        # Transform waypoints into robot frame
-        R = np.array([[np.cos(theta_r), -np.sin(theta_r)], [np.sin(theta_r), np.cos(theta_r)]])
-        current_wp = np.matmul(R,current_wp)
-        next_wp = np.matmul(R,next_wp)
-
-        # Reference values (dotx_r, doty_r, theta_r)
-        dotx_r = (next_wp[0] - current_wp[0])/d_t # Reference velocity in x-direction
-        doty_r = (next_wp[1] - current_wp[1])/d_t # Reference velocity in y-direction
-
-        # Error term
-        # Project the yaw to full angle range (-2pi, pi)
-        yaw_projected = pose[2]
-
-        #e_theta = theta_r - theta
-
-        if theta_r >= 3.12 and theta_r <= 3.16 and pose[2]<0:
-            yaw_projected = 2*np.pi+pose[2]
-        else:
-            yaw_projected = pose[2]
-
-        e_theta = np.clip(theta_r - yaw_projected, -np.pi, np.pi)
-        print("Theta_ref:", str(theta_r), "; Yaw: ",str(yaw_projected), "; Error: ",str(e_theta))
-
-
-        # PID for the heading error
-        K = 1
-        K_p= 1
-        K_i = 0.0005
-        K_d = 0.8
-
-        P_a = K_p * self.previous_e_theta
-        I_a = self.integral_e_theta + K_i * self.previous_e_theta*d_t
-        D_a = K_d * (e_theta - self.previous_e_theta)/d_t
-    
-        steering_angle = (P_a + I_a + D_a)
-
-        # Velocity based on reference trajectory
-        speed = np.linalg.norm([dotx_r, doty_r])
-
-        # Set historian
-        self.previous_e_theta = e_theta
-        self.integral_e_theta =+ I_a
-        print("I_a: "+ str(I_a))
-
-        return np.array([steering_angle, speed])
-
-
-
-        #### YOUR CODE HERE ####
+        print("Pose_ROS    ", str(pose))
+        print("---------------------")
         
+        row_1 = [u[0]*np.cos(pose[2]) + pose[0]]
+        row_2 = [u[0]*np.sin(pose[2]) + pose[1]]
+        row_3 = [u[0]*np.tan(u[1]/d)  + pose[2]]
+        new_pose_nonlinear_jannis = np.concatenate((row_1,row_2,row_3),axis=0)
+        print("NextPose Jan", new_pose_nonlinear_jannis)
+
+        row_1 = [u[0] * d_t * np.cos(pose[2]+ u[0]*np.tan(u[1])/(4*L))  + pose[0]]
+        row_2 = [u[0] * d_t * np.sin(pose[2] + u[0]*np.tan(u[1])/(4*L)) + pose[1]]
+        row_3 = [u[0] * d_t * np.tan(u[1])/L  + pose[2]]
+        new_pose_nonlinear_jannis = np.concatenate((row_1,row_2,row_3),axis=0)
+        print("NextPose Dän", new_pose_nonlinear_jannis)
+
+
+        A_t = np.array([[1, 0, -u[0] *np.sin(pose[2])], [0, 1, u[0] * np.cos(pose[2])], [0, 0, 1]])
+        B_t = np.array([[np.cos(pose[2]), 0],[np.sin(pose[2]), 0 ], [np.tan(u[1])/d, u[0]/(d* np.square(np.cos(u[1]))) ]])
         
+        new_pose_nonlinear_jannis = A_t @  np.array([pose]).T + B_t @ np.array([u]).T
+        print("NextPose Lin", new_pose_nonlinear_jannis.T)
+
+
+        return np.array([u[1], u[0]])
+        #### YOUR CODE HERE ####    
         # return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
