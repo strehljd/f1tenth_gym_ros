@@ -188,7 +188,7 @@ class Lab1(Node):
                        [0,1,0]])
         Ki = np.array([[0,0,5e-2],
                        [0,1e-5,0]])
-        Kd = np.array([[0,0,0],
+        Kd = np.array([[-5e-2,0,5e-1],
                        [0,1,0]])
 
         # Parameters
