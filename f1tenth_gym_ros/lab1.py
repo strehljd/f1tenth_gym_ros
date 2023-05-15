@@ -186,9 +186,9 @@ class Lab1(Node):
         # Tuning
         Kp = np.array([[-1,0,5e-2],
                        [0,1,0]])
-        Ki = np.array([[0,0,5e-2],
+        Ki = np.array([[0,0,5e-3],
                        [0,1e-5,0]])
-        Kd = np.array([[-5e-2,0,5e-1],
+        Kd = np.array([[-1e-1,0,1e-2],
                        [0,1,0]])
 
         # Parameters
