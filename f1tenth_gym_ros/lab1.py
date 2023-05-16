@@ -336,7 +336,43 @@ class Lab1(Node):
         return np.array([u[0,0,0], u[1,0,0]])
         #### END OF YOUR CODE ####
         raise NotImplementedError
+
+    def pure_pursuit_control(self, pose):
+        #### YOUR CODE HERE ####
+        ## PID CONTROLLER FOR speed ni 
+        d_t = 0.5
+        ## PID parameters
+        K_s = 0.5
+        K_ps = 0.6 * K_s
+        K_is = 0.075 * K_s
+        K_ds = 0.5 * K_s
+
+        P_s = K_ps * self.current_along_track_error
+        I_s = self.integral_along_track_error + K_is*self.current_along_track_error*d_t
+        D_s = K_ds * (self.current_along_track_error - self.previous_along_track_error)/d_t
+
+        speed = -(P_s + I_s + D_s)
+        self.previous_along_track_error = self.current_along_track_error
+        self.integral_along_track_error =+ I_s
+
+        ## PURE PURSUIT CONTROLLER FOR steering angle 
+        d = 0.3302 #given 
+        # calcolo di L : fatto seguendo la def -> ma prendendo qualche step avanti sulla ref traj
+        ref_p_ahead = self.ref_traj[(self.waypoint_index+4) % len(self.ref_traj)]
+        L_ah = np.linalg.norm(ref_p_ahead-pose[:2]) #estraggo solo x,y dalla pose
+
+        #voglio vedere L 
+        self.get_logger().info("L_ah: " + str(L_ah))
+
+        alfa = pose[2] - np.arctan2((ref_p_ahead[1]-pose[1]),(ref_p_ahead[0]-pose[0]))
+        #steer
+        delta = np.arctan2((2*d*np.sin(alfa)),L_ah)
+        steering_angle = delta
         
+        return np.array([steering_angle, speed])
+        #### END OF YOUR CODE ####
+        raise NotImplementedError
+
     def ilqr_control(self, pose):
         #### YOUR CODE HERE ####
 
