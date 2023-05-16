@@ -339,35 +339,48 @@ class Lab1(Node):
 
     def pure_pursuit_control(self, pose):
         #### YOUR CODE HERE ####
-        ## PID CONTROLLER FOR speed ni 
-        d_t = 0.5
-        ## PID parameters
-        K_s = 0.5
-        K_ps = 0.6 * K_s
-        K_is = 0.075 * K_s
-        K_ds = 0.5 * K_s
-
-        P_s = K_ps * self.current_along_track_error
-        I_s = self.integral_along_track_error + K_is*self.current_along_track_error*d_t
-        D_s = K_ds * (self.current_along_track_error - self.previous_along_track_error)/d_t
-
-        speed = -(P_s + I_s + D_s)
-        self.previous_along_track_error = self.current_along_track_error
-        self.integral_along_track_error =+ I_s
+        speed = 0.5 # set speed to a constant for a easy intro / debugging
 
         ## PURE PURSUIT CONTROLLER FOR steering angle 
+        
+        ## Paremeters
         d = 0.3302 #given 
         # calcolo di L : fatto seguendo la def -> ma prendendo qualche step avanti sulla ref traj
-        ref_p_ahead = self.ref_traj[(self.waypoint_index+4) % len(self.ref_traj)]
-        L_ah = np.linalg.norm(ref_p_ahead-pose[:2]) #estraggo solo x,y dalla pose
+        L = 1.5# [m] look ahead distance
+        eta = 0.5
 
-        #voglio vedere L 
-        self.get_logger().info("L_ah: " + str(L_ah))
+        x_possible =[]
+        y_possible = []
 
-        alfa = pose[2] - np.arctan2((ref_p_ahead[1]-pose[1]),(ref_p_ahead[0]-pose[0]))
+        # Find (x_r, y_r) which is the intersecection of a circle (L) and the reference trajectory
+        for i in range(len(self.ref_traj)):
+            candidate = self.ref_traj[i] 
+            distance = np.linalg.norm(candidate-pose[0:2])
+            if abs(distance-L) < eta:
+                x_possible.append(candidate[0])
+                y_possible.append(candidate[1])
+            if i == len(self.ref_traj)-1 & len(x_possible)<1:
+                print("No candidate found")
+                print("pose", pose[0:2])
+
+        for i in range(len(x_possible)):
+            angle = pose[2] - np.arctan2((y_possible[i]-pose[1]),(x_possible[i]-pose[0]))
+            if abs(angle) < 1.57:
+                x_r = x_possible[i]
+                y_r = y_possible[i]
+                print("Reference: ", x_r,", ",y_r)
+                break
+
+        
+        alfa = np.arctan((y_r-pose[1])/(x_r-pose[0])) - pose[2]
         #steer
-        delta = np.arctan2((2*d*np.sin(alfa)),L_ah)
-        steering_angle = delta
+        steering_angle = np.arctan((2*d*np.sin(alfa))/L)
+        
+        print("pose[2]", pose[2])
+        print("angle to reference",np.arctan((y_r-pose[1])/(x_r-pose[0])))
+        print("steering_angle", steering_angle)
+        print("alpha", alfa)
+        print("-----")
         
         return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
