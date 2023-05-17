@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import os
 
 # get the reference trajectory
-self_ref_traj = np.load(os.path.join('/Users/jstrehl/Documents/git/technion/f1tenth_gym_ros/', 'resource','ref_traj.npy'))
+cwd = os.getcwd()
+cwd_up = os.path.dirname(cwd)
+self_ref_traj = np.load(os.path.join(cwd, 'resource', 'ref_traj.npy'))
 
 
 dt = 0.5
@@ -110,8 +112,8 @@ N = len(self_ref_traj) # number of timesteps in the reference trajectory
 #   #   #   #   #   #   #   #   #   #   #   #   #   #   #
 ## Tuning
 max_iterations = 10 # (max) number of max_iterations
-q = 1 # tuning parameter for q -> state penalty
-qf = 1 # tuning parameter for final q
+q = 200 # tuning parameter for q -> state penalty
+qf = 20 # tuning parameter for final q
 r = 1.5 # tunign parameter for u -> control action penalty
 cost_criteria = 1
 #   #   #   #   #   #   #   #   #   #   #   #   #   #   #
@@ -233,6 +235,7 @@ for i in range(max_iterations-1):
 
     # Add current trajectory to plot
     plt.plot(traj_x[i,:,0,0],traj_x[i,:,1,0],label=str(i))
+    plt.show()
 
 ### end of iteration loop
 
