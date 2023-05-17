@@ -79,6 +79,8 @@ class Lab1(Node):
 
 
         self.x_plot = np.zeros((10 ,252, 3,1))
+
+        self.previous_index = 0
     
         self.moved = False
     
@@ -346,40 +348,41 @@ class Lab1(Node):
         ## Paremeters
         d = 0.3302 #given 
         # calcolo di L : fatto seguendo la def -> ma prendendo qualche step avanti sulla ref traj
-        L = 1.5# [m] look ahead distance
-        eta = 0.5
+        L = 1# [m] look ahead distance
+        updated = False
 
-        x_possible =[]
-        y_possible = []
+        if self.previous_index == 250:
+            self.previous_index = 0
 
         # Find (x_r, y_r) which is the intersecection of a circle (L) and the reference trajectory
-        for i in range(len(self.ref_traj)):
+        for i in range(self.previous_index,len(self.ref_traj),1):
             candidate = self.ref_traj[i] 
             distance = np.linalg.norm(candidate-pose[0:2])
-            if abs(distance-L) < eta:
-                x_possible.append(candidate[0])
-                y_possible.append(candidate[1])
-            if i == len(self.ref_traj)-1 & len(x_possible)<1:
-                print("No candidate found")
-                print("pose", pose[0:2])
-
-        for i in range(len(x_possible)):
-            angle = pose[2] - np.arctan2((y_possible[i]-pose[1]),(x_possible[i]-pose[0]))
-            if abs(angle) < 1.57:
-                x_r = x_possible[i]
-                y_r = y_possible[i]
+            if distance >= L:
+                x_r = candidate[0]
+                y_r = candidate[1]
+                self.previous_index = i
+                updated = True
                 print("Reference: ", x_r,", ",y_r)
+                print("index", i)
                 break
 
-        
-        alfa = np.arctan((y_r-pose[1])/(x_r-pose[0])) - pose[2]
+        print("Pose: ", pose)
+        if not updated:
+            print("All candidates dropped")
+
+
+        # Calcualte vector between pose and reference
+        l_1 = x_r-pose[0]
+        l_2 = y_r-pose[1]
+
+        # Calculate the angle between headeing and L
+        alfa =  np.arctan2(y_r - pose[1], x_r - pose[0]) -pose[2]
         #steer
         steering_angle = np.arctan((2*d*np.sin(alfa))/L)
         
-        print("pose[2]", pose[2])
-        print("angle to reference",np.arctan((y_r-pose[1])/(x_r-pose[0])))
-        print("steering_angle", steering_angle)
-        print("alpha", alfa)
+        print("steering_angle", np.rad2deg(steering_angle))
+        print("alpha", np.rad2deg(alfa))
         print("-----")
         
         return np.array([steering_angle, speed])
