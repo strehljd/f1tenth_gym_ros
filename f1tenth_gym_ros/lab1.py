@@ -344,13 +344,12 @@ class Lab1(Node):
         speed = 0.5 # set speed to a constant for a easy intro / debugging
 
         ## PURE PURSUIT CONTROLLER FOR steering angle 
-        
         ## Paremeters
-        d = 0.3302 #given 
-        # calcolo di L : fatto seguendo la def -> ma prendendo qualche step avanti sulla ref traj
-        L = 1# [m] look ahead distance
-        updated = False
+        d = 0.3302 # [m] axle distance
+        L = 1 # [m] look ahead distance
+        updated = False # sanity check
 
+        # Reset if trajectory is nearly done -> so the controller can run until the end / multiple times
         if self.previous_index == 250:
             self.previous_index = 0
 
@@ -358,32 +357,19 @@ class Lab1(Node):
         for i in range(self.previous_index,len(self.ref_traj),1):
             candidate = self.ref_traj[i] 
             distance = np.linalg.norm(candidate-pose[0:2])
-            if distance >= L:
+            if distance >= L: # we choose the first point along the trajectory that is more then L away. (to always comply with the min. look-ahead distance)
                 x_r = candidate[0]
                 y_r = candidate[1]
                 self.previous_index = i
                 updated = True
-                print("Reference: ", x_r,", ",y_r)
-                print("index", i)
                 break
 
-        print("Pose: ", pose)
         if not updated:
-            print("All candidates dropped")
+            print("No reference waypoint found!")
 
-
-        # Calcualte vector between pose and reference
-        l_1 = x_r-pose[0]
-        l_2 = y_r-pose[1]
-
-        # Calculate the angle between headeing and L
+        # Calculate steering angle
         alfa =  np.arctan2(y_r - pose[1], x_r - pose[0]) -pose[2]
-        #steer
         steering_angle = np.arctan((2*d*np.sin(alfa))/L)
-        
-        print("steering_angle", np.rad2deg(steering_angle))
-        print("alpha", np.rad2deg(alfa))
-        print("-----")
         
         return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
