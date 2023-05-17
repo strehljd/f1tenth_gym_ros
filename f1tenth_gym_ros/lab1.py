@@ -232,16 +232,6 @@ class Lab1(Node):
         # Keep track of errors
         self.previous_error = e
 
-        # self.get_ref_pos() # advance wp index
-
-
-        print("--- Cycle", self.waypoint_index," ---")
-        print("error:")
-        print(e)
-        print("u:")
-        print(u)
-
-
         # Ackermann
         u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])        
         return np.array([u[0,0,0], u[1,0,0]])
@@ -318,22 +308,8 @@ class Lab1(Node):
         # Keep track of errors
         self.previous_error = e
 
-        # self.get_ref_pos() # advance wp index
-
-
-        print("--- Cycle", self.waypoint_index," ---")
-        print("error:")
-        print(e)
-        print("u:")
-        print(u)
-
         # Unicycle
         u[0,0,0] = u[0,0,0]
-
-        # print("----")
-        # # Ackermann
-        # u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])
-        # print("Ackermann: angle", u[0,0,0], " speed",u[1,0,0] )
         
         return np.array([u[0,0,0], u[1,0,0]])
         #### END OF YOUR CODE ####
