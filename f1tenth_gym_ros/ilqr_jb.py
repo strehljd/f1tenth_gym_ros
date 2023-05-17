@@ -6,6 +6,7 @@ class ilqr:
     def __init__(self, u_init, x_init):
         # working directory
         cwd = os.getcwd()
+        cwd_up = os.path.dirname(cwd)
 
         # parameters
         self.d = 0.3302
@@ -17,7 +18,7 @@ class ilqr:
         self.R = 2*np.eye(2)
 
         # reference data
-        self.x_ref = np.load(os.path.join(cwd, 'resource', 'ref_traj.npy'))
+        self.x_ref = np.load(os.path.join(cwd_up, 'resource', 'ref_traj.npy'))
         self.max_time = len(self.x_ref)
         self.u_ref = np.zeros((self.max_time,2,1))
 
@@ -95,14 +96,14 @@ class ilqr:
     
     def run_ilqr(self):
         # run iterations
-        for i in range(self.max_iter):
+        for i in range(self.max_iter-1):
             
             # run backwards pass
             for t in range(self.max_time-2, 0, -1):
                 self.backwards(i, t)
             
             # run forwards pass
-            for t in range(self.max_time):
+            for t in range(self.max_time-1):
                 self.forwards(i, t)
 
 
