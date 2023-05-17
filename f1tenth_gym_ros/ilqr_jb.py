@@ -87,7 +87,7 @@ class ilqr:
         # update control vector
         self.u_traj[i+1, t] = u_it+K_t@(x_ip1t-x_it) + d_t
 
-        # update state !!! error in dimensions
+        # update state
         self.x_traj[i+1, t+1, 0] = x_itp1[0] + d_t*(u_it[0]*np.cos(x_it[2])*dt + x_it[0])
         self.x_traj[i+1, t+1, 1] = x_itp1[1] + d_t*(u_it[0]*np.sin(x_it[2])*dt + x_it[1])
         self.x_traj[i+1, t+1, 2] = x_itp1[2] + d_t*(u_it[0]*np.tan(u_it[1])*dt/d + x_it[2])
