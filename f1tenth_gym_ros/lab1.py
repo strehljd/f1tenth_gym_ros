@@ -174,11 +174,11 @@ class Lab1(Node):
         derivative = np.zeros((2,1,1))
 
         # Tuning
-        Kp = np.array([[-1,0,5e-2],
+        Kp = np.array([[-5,0,1e-5],
                        [0,1,0]])
-        Ki = np.array([[0,0,5e-3],
+        Ki = np.array([[0,0,1e-7],
                        [0,1e-5,0]])
-        Kd = np.array([[-10,0,1e-2],
+        Kd = np.array([[-1,0,1],
                        [0,1,0]])
 
         # Parameters
@@ -236,7 +236,6 @@ class Lab1(Node):
         u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])        
         return np.array([u[0,0,0], u[1,0,0]])
         #### END OF YOUR CODE ####
-
         raise NotImplementedError
     
     def pid_unicycle_control(self, pose):
@@ -298,7 +297,7 @@ class Lab1(Node):
         else:
             derivative[:,:,0] = Kd @ e_dot[:,:,0] / dt
 
-        # Compute final output
+        # Compute final output  
         u[:,:,:] = -(proportional + self.integral + derivative)
         u[0,0,0] = np.clip(u[0,0,0], -max_angle, max_angle) 
         u[1,0,0] = np.clip(u[1,0,0], -max_speed, max_speed) 
