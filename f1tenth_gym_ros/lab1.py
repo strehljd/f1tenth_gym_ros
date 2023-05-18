@@ -24,7 +24,7 @@ from transforms3d import euler
 # and publish ackermann drive commands to the car based on one of 4 controllers selected with a parameter
 # the controllers are PID, Pure Pursuit, iLQR, and an optimal controller 
 class Lab1(Node):
-    def __init__(self, controller_type: str = 'pid'):
+    def __init__(self, controller_type: str = 'pid', traj_type: str = 'ref'):
         super().__init__('lab1')
         self.get_logger().info("Lab 1 Node has been started")
 
@@ -47,7 +47,7 @@ class Lab1(Node):
         self.get_logger().info("Loading Reference Trajectory")
         self.ref_traj = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
                                             'resource',
-                                            'ref_traj.npy'))
+                                            traj_type + '_traj.npy'))
         self.ref_traj # prevent unused variable warning
         
         # create a timer to publish the control input every 20ms
@@ -181,7 +181,10 @@ class EndLap(Exception):
 def main(args=None):
     rclpy.init()
 
-    lab1 = Lab1(controller_type=sys.argv[1])
+    if len(args) < 3:
+        lab1 = Lab1(controller_type=args[1])
+    else:
+        lab1 = Lab1(controller_type=args[1], traj_type=args[2])
 
     tick = time.time()
     try:
@@ -203,8 +206,7 @@ def main(args=None):
     
     
 if __name__ == '__main__':
-    controller_type = sys.argv[1]
-    main(controller_type)
+    main(sys.argv)
     
     
         
