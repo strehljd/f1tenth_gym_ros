@@ -117,8 +117,8 @@ class Lab1(Node):
         self.current_along_track_error = along_track_error
         
         # log the accumulated error to screen and internally to be printed at the end of the run
-        # self.get_logger().info("Cross Track Error: " + str(cross_track_error))
-        # self.get_logger().info("Along Track Error: " + str(along_track_error))
+        self.get_logger().info("Cross Track Error: " + str(cross_track_error))
+        self.get_logger().info("Along Track Error: " + str(along_track_error))
         self.cross_track_accumulated_error += abs(cross_track_error)
         self.along_track_accumulated_error += abs(along_track_error)
         
