@@ -3,7 +3,7 @@ import os
 
 
 class ilqr:
-    def __init__(self, u_init, x_init):
+    def __init__(self):
         # working directory
         cwd = os.getcwd()
         cwd_up = os.path.dirname(cwd)
@@ -18,9 +18,11 @@ class ilqr:
         self.R = 2*np.eye(2)
 
         # reference data
-        self.x_ref = np.load(os.path.join(cwd_up, 'resource', 'ref_traj.npy'))
+        self.x_ref = np.load(os.path.join(cwd, 'resource', 'ref_traj.npy'))
         self.max_time = len(self.x_ref)
         self.u_ref = np.zeros((self.max_time,2,1))
+        self.x_init = np.load(os.path.join(cwd, 'resource', 'true_pos.npy'))
+        self.u_init = np.load(os.path.join(cwd, 'resource', 'controllers.npy'))
 
         # evolving data
         self.u_traj = np.zeros((self.max_iter, self.max_time, 2, 1))
@@ -31,10 +33,11 @@ class ilqr:
         self.s = np.zeros((self.max_iter, self.max_time,3,1))
         self.d_bw = np.zeros((self.max_iter, self.max_time, 2, 1))
         self.K_bw = np.zeros((self.max_iter, self.max_time, 2, 3))
+        self.rho = 1
 
         # initialization
-        self.u_traj[0, :] = u_init
-        self.x_traj[0, :] = x_init
+        self.u_traj[0, :, :, 0] = self.u_init[:self.max_time]
+        self.x_traj[0, :, :, 0] = self.x_init[:self.max_time]
         #self.S =
         #self.s =
 
@@ -88,9 +91,9 @@ class ilqr:
         self.u_traj[i+1, t] = u_it+K_t@(x_ip1t-x_it) + d_t
 
         # update state
-        self.x_traj[i+1, t+1, 0] = x_itp1[0] + d_t*(u_it[0]*np.cos(x_it[2])*dt + x_it[0])
-        self.x_traj[i+1, t+1, 1] = x_itp1[1] + d_t*(u_it[0]*np.sin(x_it[2])*dt + x_it[1])
-        self.x_traj[i+1, t+1, 2] = x_itp1[2] + d_t*(u_it[0]*np.tan(u_it[1])*dt/d + x_it[2])
+        self.x_traj[i+1, t+1, 0] = x_itp1[0] + dt*(u_it[0]*np.cos(x_it[2])*dt + x_it[0])
+        self.x_traj[i+1, t+1, 1] = x_itp1[1] + dt*(u_it[0]*np.sin(x_it[2])*dt + x_it[1])
+        self.x_traj[i+1, t+1, 2] = x_itp1[2] + dt*(u_it[0]*np.tan(u_it[1])*dt/d + x_it[2])
         pass
 
     
@@ -110,5 +113,5 @@ class ilqr:
           
 
 if __name__ == '__main__':
-    algo = ilqr(u_init = np.ones((252,2,1)), x_init = np.ones((252,3,1)))
-    algo.run_ilqr()
+    ilqr = ilqr()
+    ilqr.run_ilqr()
