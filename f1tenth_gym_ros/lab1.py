@@ -64,25 +64,13 @@ class Lab1(Node):
         self.along_track_accumulated_error = 0
         self.waypoint_index = 0
 
-        # Historians for PID-controllers
-        self.previous_cross_track_error = 0
-        self.previous_along_track_error= 0
-        self.integral_along_track_error = 0
-        self.integral_cross_track_error = 0
+        # Variables added for lab1
+        self.previous_pose = np.zeros((3,1)) # used for PID controllers
+        self.previous_error = np.zeros((3,1,1)) # used for PID controllers
+        self.integral = np.zeros((2,1,1)) # used for PID controllers
 
-        self.integral_e_theta = 0
-        self.previous_e_theta = 0
-        self.integral = np.zeros((2,1,1))
-
-        self.previous_pose = np.zeros((3,1))
-        self.previous_error = np.zeros((3,1,1))
-
-
-        self.x_plot = np.zeros((10 ,252, 3,1))
-
-        self.previous_index = 0
-    
-        self.moved = False
+        self.previous_index = 0 # used for pure pursuit
+        self.moved = False # used for pure pursuit
     
     def get_ref_pos(self):
         # get the next waypoint in the reference trajectory based on the current time
