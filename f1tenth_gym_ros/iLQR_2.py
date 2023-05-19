@@ -44,9 +44,9 @@ class iLQR:
             self.c += self.CalcCost(self.x[t],self.u[t],self.Q,self.R)
     # calculate value of model f(x,u)
     def CalcModel(self,pose,control):
-        x = control[1] * np.cos(pose[2])
-        y = control[1] * np.sin(pose[2]) 
-        theta = control[1] * np.tan(control[0]) / self.wheelbase
+        x = control[1] * np.cos(pose[2])*self.dt
+        y = control[1] * np.sin(pose[2])*self.dt
+        theta = control[1] * self.dt * np.tan(control[0])/self.wheelbase
         return np.array([x,y,theta])
         
     # calculate the delta control
@@ -93,7 +93,7 @@ class iLQR:
     def UpdateB(self,t,x,u):
         self.B[t] = np.array([[np.cos(x[2]) ,                            0              ],
                               [np.sin(x[2]) ,                            0              ],
-                              [np.tan(u[1])/self.wheelbase , u[0] * (1 / (np.cos(u[1])**2))    ] ] )
+                              [np.tan(u[1])/self.wheelbase , u[0] * (1 / (np.cos(u[1])**2))/self.wheelbase    ] ] )
         
     # backward iteration
     def BackwardIter(self,t):
