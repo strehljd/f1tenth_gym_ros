@@ -305,7 +305,7 @@ class Lab1(Node):
 
     def pure_pursuit_control(self, pose):
         #### YOUR CODE HERE ####
-        speed = 0.5 # set speed to a constant for a easy intro / debugging
+        speed = 0.5 
 
         ## PURE PURSUIT CONTROLLER FOR steering angle 
         ## Paremeters
