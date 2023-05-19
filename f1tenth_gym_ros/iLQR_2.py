@@ -152,36 +152,36 @@ def plot_trajectory(coordinates,map = 'viridis'):
 
     # plt.show()
 #--------------------------------------------------------
-cwd = os.getcwd()
-cwd_up = os.path.dirname(cwd)
-#true_pos = np.load(cwd, 'f1tenth_gym_ros/f1tenth_gym_ros/true_pos.npy')
-true_pos = np.load(cwd, 'resource', 'true_pos.npy')
-controllers = np.load(cwd, 'resource', 'controllers.npy')
-ref_traj = np.load(cwd,  'resource', 'ref_traj.npy')
-pos = np.copy(true_pos)
+# cwd = os.getcwd()
+# cwd_up = os.path.dirname(cwd)
+# #true_pos = np.load(cwd, 'f1tenth_gym_ros/f1tenth_gym_ros/true_pos.npy')
+# true_pos = np.load(cwd+'/resource/true_pos.npy')
+# controllers = np.load(cwd+'/resource/controllers.npy')
+# ref_traj = np.load(cwd+'/resource/ref_traj.npy')
+# pos = np.copy(true_pos)
 
-# %%
+# # %%
 
-wheelbase = 0.3032
-N = 252
-A = [np.eye(3) for _ in range(N)]
-B = [np.ones((3,2)) for _ in range(N)]
-Q = 1* np.eye(3)
-# R = 20* np.array([[1,0],[0,10]])
-R = 1e3*np.eye(2)
-u = [0,0]
-x = [0,0,0]
+# wheelbase = 0.3032
+# N = 252
+# A = [np.eye(3) for _ in range(N)]
+# B = [np.ones((3,2)) for _ in range(N)]
+# Q = 1* np.eye(3)
+# # R = 20* np.array([[1,0],[0,10]])
+# R = 1e3*np.eye(2)
+# u = [0,0]
+# x = [0,0,0]
 
-max_iter = 25
-ilqr = iLQR(controllers,true_pos,ref_traj,Q,A,B,R,iter=max_iter)
+# max_iter = 25
+# ilqr = iLQR(controllers,true_pos,ref_traj,Q,A,B,R,iter=max_iter)
 
-# %%
-ilqr.run()
-plt.figure(1)
-plot_trajectory(ilqr.x)
-# plt.figure(2)
-plot_trajectory(pos,map='inferno')
-plt.show()
+# # %%
+# ilqr.run()
+# plt.figure(1)
+# plot_trajectory(ilqr.x)
+# # plt.figure(2)
+# plot_trajectory(pos,map='inferno')
+# plt.show()
 
 
 
