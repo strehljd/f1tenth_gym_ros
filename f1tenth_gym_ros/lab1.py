@@ -68,6 +68,7 @@ class Lab1(Node):
         self.previous_pose = np.zeros((3,1)) # used for PID controllers
         self.previous_error = np.zeros((3,1,1)) # used for PID controllers
         self.integral = np.zeros((2,1,1)) # used for PID controllers
+        self.is_first = True; # used in optimal control
 
         self.previous_index = 0 # used for pure pursuit
         self.moved = False # used for pure pursuit
@@ -348,9 +349,44 @@ class Lab1(Node):
         
     def optimal_control(self, pose):
         #### YOUR CODE HERE ####
-        
-        
-        # return np.array([steering_angle, speed])
+        # set first error to not 0. This allows to start at a not 0 speed
+        if self.is_first:
+            self.previous_error[1,0] = -1
+            is_first = False
+        _, speed = self.pid_unicycle_control(pose)
+        print("speed", speed)
+
+
+        # Taking the code of the pure_pursuit with a L based on the speed scaling
+        ## PURE PURSUIT CONTROLLER FOR steering angle 
+        ## Paremeters
+        d = 0.3302 # [m] axle distance
+        L = speed * 2 # [m] look ahead distance
+        updated = False # sanity check
+
+        # Reset if trajectory is nearly done -> so the controller can run until the end / multiple times
+        if self.previous_index == 250:
+            self.previous_index = 0
+
+        # Find (x_r, y_r) which is the intersecection of a circle (L) and the reference trajectory
+        for i in range(self.previous_index,len(self.ref_traj),1):
+            candidate = self.ref_traj[i] 
+            distance = np.linalg.norm(candidate-pose[0:2])
+            if distance >= L: # we choose the first point along the trajectory that is more then L away. (to always comply with the min. look-ahead distance)
+                x_r = candidate[0]
+                y_r = candidate[1]
+                self.previous_index = i
+                updated = True
+                break
+
+        if not updated:
+            print("No reference waypoint found!")
+
+        # Calculate steering angle
+        alfa =  np.arctan2(y_r - pose[1], x_r - pose[0]) -pose[2]
+        steering_angle = np.arctan((2*d*np.sin(alfa))/L)
+
+        return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
         
