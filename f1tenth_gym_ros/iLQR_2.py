@@ -1,5 +1,6 @@
 # %%
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 
 #-------------------------------------------------------------------
@@ -151,9 +152,12 @@ def plot_trajectory(coordinates,map = 'viridis'):
 
     # plt.show()
 #--------------------------------------------------------
-true_pos = np.load('f1tenth_gym_ros/f1tenth_gym_ros/true_pos.npy')
-controllers = np.load('f1tenth_gym_ros/f1tenth_gym_ros/controllers.npy')
-ref_traj = np.load('f1tenth_gym_ros/resource/ref_traj.npy')
+cwd = os.getcwd()
+cwd_up = os.path.dirname(cwd)
+#true_pos = np.load(cwd, 'f1tenth_gym_ros/f1tenth_gym_ros/true_pos.npy')
+true_pos = np.load(cwd, 'resource', 'true_pos.npy')
+controllers = np.load(cwd, 'resource', 'controllers.npy')
+ref_traj = np.load(cwd,  'resource', 'ref_traj.npy')
 pos = np.copy(true_pos)
 
 # %%
