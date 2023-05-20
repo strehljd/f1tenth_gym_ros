@@ -66,7 +66,6 @@ class Lab1(Node):
         self.moved = False
 
         # Variables added for lab1
-        self.previous_pose = np.zeros((3,1)) # used for PID controllers
         self.previous_error = np.zeros((3,1,1)) # used for PID controllers
         self.integral = np.zeros((2,1,1)) # used for PID controllers
         self.previous_index = 0 # used for pure pursuit
@@ -216,8 +215,6 @@ class Lab1(Node):
         u[0,0,0] = np.clip(u[0,0,0], -max_angle, max_angle) 
         u[1,0,0] = np.clip(u[1,0,0], -max_speed, max_speed) 
 
-        # Keep track of state
-        self.previous_pose = pose
         # Keep track of errors
         self.previous_error = e
 
@@ -291,8 +288,6 @@ class Lab1(Node):
         u[0,0,0] = np.clip(u[0,0,0], -max_angle, max_angle) 
         u[1,0,0] = np.clip(u[1,0,0], -max_speed, max_speed) 
 
-        # Keep track of state
-        self.previous_pose = pose
         # Keep track of errors
         self.previous_error = e
 
@@ -352,7 +347,7 @@ class Lab1(Node):
         # set first error to not 0. This allows to start at a not 0 speed
         if self.is_first:
             self.previous_error[1,0] = -1
-            is_first = False
+            self.is_first = False
         _, speed = self.pid_unicycle_control(pose)
         print("speed", speed)
 
