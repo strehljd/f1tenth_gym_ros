@@ -72,3 +72,26 @@ class iLQRController:
             [1/self.distance * np.tan(u[1]), u[0] * 1/self.distance * 1/(np.square(np.cos(u[1])))]])
 
         return (A, B)
+
+
+
+def main():
+    print("Starting main")
+
+    # Define parameters
+    Q = np.diag([1, 1, 1]) 
+    R = np.diag([0.1, 0.1, 0.1]) 
+    Q_terminal = np.diag([1, 1, 1]) 
+
+    # Load trajectories 
+    x_init = 
+    x_desired = 
+    u_init = 
+    print("Trajectories loaded!")
+
+    controller = iLQRController(0.5,10, 3, 2) # instatiate a controller
+    controller.compute_control_input(x_init, u_init, x_desired, Q, R, Q_terminal)
+    print("Iterations done")
+
+if __name__ == "__main__":
+    main()
