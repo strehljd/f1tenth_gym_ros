@@ -4,7 +4,7 @@ from PIL import Image
 import yaml
 import os
 import pathlib
-from a_star import A_star, Node
+from a_star import A_star
 
 
 def load_map_and_metadata(map_file):
