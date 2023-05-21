@@ -297,12 +297,12 @@ class Lab1(Node):
         derivative = np.zeros((2,1,1))
 
         # Tuning
-        Kp = np.array([[-5,0,1e-5],
-                       [0,1,0]])
-        Ki = np.array([[0,0,1e-7],
-                       [0,1e-5,0]])
-        Kd = np.array([[-1,0,1],
-                       [0,1,0]])
+        Kp = np.array([[-5,0,1],
+                       [0,2.3,0]])
+        Ki = np.array([[-1e-5,0,5e-4],
+                       [0,7,0]])
+        Kd = np.array([[-2,0,2.5],
+                       [0,0,0]])
 
         # Parameters
         dt = 0.5 # Simulation timesteps
@@ -330,7 +330,7 @@ class Lab1(Node):
         e[0,0,0] = theta_e
         e[1,0,0] = self.current_along_track_error
         e[2,0,0] = self.current_cross_track_error
-        e_dot[:,:,0] = (self.previous_error[:,:,0] - e_dot[:,:,0] ) /dt
+        e_dot[:,:,0] = (e[:,:,0] - self.previous_error[:,:,0]) /dt
         
         proportional[:,:,0] = Kp @ e[:,:,0]
 
@@ -354,7 +354,7 @@ class Lab1(Node):
         self.previous_error = e
 
         # Ackermann
-        u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0])        
+        u[0,0,0] = np.arctan((u[0,0,0] * d)/u[1,0,0]) 
         return np.array([u[0,0,0], u[1,0,0]])
         #### END OF YOUR CODE ####
         raise NotImplementedError
