@@ -33,7 +33,7 @@ class iLQRController:
         self.K = np.zeros((num_timesteps, num_controls,num_states))
         self.k = np.zeros((num_timesteps, num_controls))
         self.d_t = np.zeros((num_timesteps, num_controls))
-        self.distance = 0.0381 # distance between the two wheel axles TODO move to init
+        self.distance = 0.0381 # distance between the two wheel axles 
         self.cost = 0 # cost of the last iteration
 
     def compute_control_input(self, x_init, u_init, x_reference, Q, R, Q_terminal):
@@ -489,6 +489,7 @@ class Lab1(Node):
         Q_terminal = np.diag([1, 1, 1]) 
 
         # Load trajectories 
+        # @Adi: if needed we can provide u the files. Please send a quick mail to jan@jstrehl.de
         x_init =  np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
                                             'resource',
                                             'x_init.npy'))
