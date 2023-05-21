@@ -57,7 +57,7 @@ class iLQRController:
             self.cost = cost # store cost unitl next iteration
 
             count+=1
-        pass
+        return u
 
     def get_cost(self, x, u, x_reference, Q, Q_terminal, R):
         # Calculate cost according to equation (1) in the lecture's tutorial slide 13
@@ -471,6 +471,17 @@ class Lab1(Node):
 
     def ilqr_control(self, pose):
         #### YOUR CODE HERE ####
+
+
+        ref_traj = self.ref_traj
+        true_pos = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
+                                            'resource',
+                                            'true_pos.npy'))
+        controllers = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
+                                            'resource',
+                                            'controllers.npy'))
+
+
         
         # Define parameters
         Q = np.diag([1, 1, 1]) 
@@ -478,20 +489,32 @@ class Lab1(Node):
         Q_terminal = np.diag([1, 1, 1]) 
 
         # Load trajectories 
-        x_init = np.load("/Users/jstrehl/Documents/git/technion/f1tenth_gym_ros/resource/x_init.npy")
-        u_init = np.load("/Users/jstrehl/Documents/git/technion/f1tenth_gym_ros/resource/u_init.npy")
+        x_init =  np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
+                                            'resource',
+                                            'x_init.npy'))
+        u_init = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
+                                            'resource',
+                                            'u_init.npy'))
         x_reference = np.zeros([252,3])
-        x_reference[:,:2] = np.load("/Users/jstrehl/Documents/git/technion/f1tenth_gym_ros/resource/ref_traj.npy")
+        x_reference[:,:2] = self.ref_traj
         print("Trajectories loaded!")
 
+        # Add theta to the reference trajectory
         for j in range(len(x_reference)-1):
             x_reference[j,2] =  np.arctan2(x_reference[j+1,1]-x_reference[j,1], x_reference[j+1,0]-x_reference[j,0])
 
         controller = iLQRController(0.5,100, 3, 2, 252) # instatiate a controller
-
-        controller.compute_control_input(x_init, u_init, x_reference, Q, R, Q_terminal)
+        u = controller.compute_control_input(x_init, u_init, x_reference, Q, R, Q_terminal) # calculate optimal u
         
-        # return np.array([steering_angle, speed])
+        # Do an open-loop control with the optimal u
+        t = self.waypoint_index
+        speed = u[t,0]
+        steering_angle = u[t,1]
+
+        print("speed: ", speed, " angle: ",steering_angle)
+        print("t", t)
+
+        return np.array([steering_angle, speed])
         #### END OF YOUR CODE ####
         raise NotImplementedError
         
