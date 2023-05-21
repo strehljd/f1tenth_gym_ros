@@ -55,7 +55,6 @@ class A_star():
         return np.linalg.norm(np.array(node[:2]) - np.array(goal[:2]))
     
     def check_goal_condition(self, node, goal):
-        print(np.linalg.norm(np.array(node[:2]) - np.array(goal[:2])))
         if np.linalg.norm(np.array(node[:2]) - np.array(goal[:2])) < 1:
             return True
     
