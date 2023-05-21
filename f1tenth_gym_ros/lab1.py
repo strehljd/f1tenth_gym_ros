@@ -470,19 +470,7 @@ class Lab1(Node):
         raise NotImplementedError
 
     def ilqr_control(self, pose):
-        #### YOUR CODE HERE ####
-
-
-        ref_traj = self.ref_traj
-        true_pos = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
-                                            'resource',
-                                            'true_pos.npy'))
-        controllers = np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
-                                            'resource',
-                                            'controllers.npy'))
-
-
-        
+        #### YOUR CODE HERE ####        
         # Define parameters
         Q = np.diag([1, 1, 1]) 
         R = np.diag([0.1, 0.1]) 
