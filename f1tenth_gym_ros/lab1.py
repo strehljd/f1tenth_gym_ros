@@ -379,7 +379,6 @@ class Lab1(Node):
 
         # Parameters
         dt = 0.5 # Simulation timesteps
-        d = 0.018 # TODO TODO wheel-lenght of the car
         max_speed = 0.5 # Output limit according to ROS simulation (0.5 m/s)
         max_angle = 1.57 # Output limit according to a "normal car" -> steering angle >90deg is not feasible
 
