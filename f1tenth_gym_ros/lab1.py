@@ -476,7 +476,7 @@ class Lab1(Node):
         Q_terminal = np.diag([1, 1, 1]) 
 
         # Load trajectories 
-        # @Adi: if needed we can provide u the files. Please send a quick mail to jan@jstrehl.de
+        # @Adi: if needed we can provide u the files. Please send a quick mail to jan@jstrehl.de    
         x_init =  np.load(os.path.join(get_package_share_directory('f1tenth_gym_ros'),
                                             'resource',
                                             'x_init.npy'))
