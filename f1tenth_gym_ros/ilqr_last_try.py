@@ -55,19 +55,6 @@ class iLQRController:
         cost = self.get_cost(x, u, x_reference, Q, Q_terminal, R)
         
         return (cost, x, u)
-
-    def forward_pass_old(self, x, u, x_init):
-        # x, u are the trajectories of the current iteration (i)
-        x_traj = np.zeros((self.num_timesteps, self.num_states)) # trajectory in the next iteration (i+1)
-        x_traj[0] = x_init[0] #set initial value to initial value at the first iteration
-
-        u_traj = np.zeros((self.num_timesteps, self.num_controls)) # control in the next iteration (i+1)
-
-        for t in range(self.num_timesteps-1):
-            u_traj[t] = u[t] + self.K[t]@(x_traj[t] - x[t]) + self.d_t[t] # here we could add an alpha
-            x_traj[t+1] = self.dynamics(x_traj[t], u_traj[t])
-
-        return (x_traj, u_traj)
     
     def forward_pass(self, x, u, x_init):
         # Forward pass according to section 8.2 in Calinon's paper
@@ -83,13 +70,14 @@ class iLQRController:
             x_traj[t+1] = self.dynamics(x_traj[t], u_traj[t])
 
         return (x_traj, u_traj)
+    
     def backward_pass(self, x_traj, x_reference, Q, R, Q_terminal, u_traj, rho):
-        # Backward pass according to section 8.2 in Calinon's paper
+        # Backward pass according to section 8.2 in Calinon's paper and the equations given in the tutorial
         
         vx = np.zeros((self.num_timesteps +1, self.num_states))
         Vxx = np.zeros((self.num_timesteps + 1, self.num_states, self.num_states))
 
-        Vxx[-1] = Q_terminal #euqual to S
+        Vxx[-1] = Q_terminal #equal to S
         vx[-1] = Q_terminal @(x_traj[self.num_timesteps-1] - x_reference[self.num_timesteps-1]) # equal to s
 
 
@@ -123,45 +111,8 @@ class iLQRController:
 
         pass 
 
-    def backward_pass_old(self, x_traj, x_reference, Q, R, Q_terminal, u_traj):
-        Qf = Q_terminal
-        S = np.zeros((self.num_timesteps + 1, self.num_states, self.num_states))
-        s = np.zeros((self.num_timesteps +1, self.num_states))
-        S[-1] = Qf 
-        s[-1] = Qf @(x_traj[self.num_timesteps-1] - x_reference[self.num_timesteps-1])
-
-        for i in range(self.num_timesteps - 1, -1, -1):
-            A, B = self.linearize_dynamics(x_traj[i], u_traj[i])
-
-            Qx = Q@(x_traj[i] - x_reference[i]) + s[i+1]@A # CDONE
-            Qu = R@u_traj[i]  + s[i+1]@B # CDONE
-            
-            Qxx = Q + A.T@S[i+1]@A # CDONE
-            Quu = R + (B.T @ S[i+1] @ B) # CDONE
-            Qux = B.T@S[i+1]@(A) # CDONE
-
-
-            # Calculate regularized Quu and Qux
-            rho = 0.1 # TODO add a meaningfull calculation here -> maybe based on the cost?
-            Quu_tilde = R + (B.T @ (S[i+1]+ rho*np.eye(self.num_states)) @ B)
-            Qux_tilde = B.T @ (S[i+1]+ rho*np.eye(self.num_states)) @ A
-            Quu_inv_tilde = np.linalg.inv(Quu_tilde) # CDONE
-
-
-            K = -np.matmul(Quu_inv_tilde, Qux_tilde) # CDONE
-            d_t = -np.matmul(Quu_inv_tilde, Qu) # CDONE
-
-
-            S[i] = Qxx + K.T.dot(Quu).dot(K) + K.T.dot(Qux) + Qux.T.dot(K) # CDONE
-            s[i] = Qx + K.T@Quu@d_t + K.T@Qu + Qux.T@d_t
-            
-            self.K[i] = K
-            self.d_t[i] = d_t
-            if i == 0:
-                print("")
-
-    def dynamics(self, x, u): # Testing done
-        # Define the system dynamics function
+    def dynamics(self, x, u):
+        # Define the system dynamics nonlinear function
         x_0 = x[0] + u[0] * np.cos(x[2])
         x_1 = x[1] + u[0] * np.sin(x[2])
         x_2 = x[2] + u[0] * np.tan(u[1]) * 1/self.distance
