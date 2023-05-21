@@ -52,7 +52,7 @@ def collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, ori
     raise NotImplementedError
 
 
-def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=2000):
+def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=2000, dim=2):
     ####### your code goes here #######
     
     
@@ -63,10 +63,11 @@ def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x
 
 def create_prm_traj(map_file):
     prm_traj = []
-    mid_points = np.array([[0,0],
-                           [9.5,4.5],
-                           [0,8.5],
-                           [-13.5,4.5]])
+    mid_points = np.array([[0,0,0],
+                           [9.5,4.5,pi/2],
+                           [0,8.5,pi],
+                           [-13.5,4.5,-pi/2]])
+    map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
     # TODO: load the map and metadata
     
@@ -80,9 +81,15 @@ def create_prm_traj(map_file):
     np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
 
 
-def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt):
+def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
     
+    ##################################
+    raise NotImplementedError
+
+
+def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
+    ####### your code goes here #######
     
     
     ##################################
@@ -92,7 +99,11 @@ def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt):
 
 def create_kino_rrt_traj(map_file):
     kino_rrt_traj = []
-    
+    mid_points = np.array([[0,0,0],
+                           [9.5,4.5,pi/2],
+                           [0,8.5,pi],
+                           [-13.5,4.5,-pi/2]])
+    map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
     # TODO: load the map and metadata
     
@@ -106,7 +117,5 @@ def create_kino_rrt_traj(map_file):
 
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
-    data = load_map_and_metadata(map_file)
-    print(data)
-    # create_prm_traj(map_file)
-    # create_kino_rrt_traj(map_file)
+    create_prm_traj(map_file)
+    create_kino_rrt_traj(map_file)
