@@ -13,7 +13,7 @@ def load_map_and_metadata(map_file):
     map_arr = np.array(map_img, dtype=np.uint8)
     map_arr[map_arr < 220] = 1
     map_arr[map_arr >= 220] = 0
-    map_arr = map_arr.astype(np.bool)
+    map_arr = map_arr.astype(bool)
     map_hight = map_arr.shape[0]
     map_width = map_arr.shape[1]
     # TODO: load the map dimentions and resolution from yaml file
@@ -35,6 +35,10 @@ def pose2map_coordinates(map_resolution, origin_x, origin_y, x, y):
     y_map = int((y - origin_y) / map_resolution)
     return y_map, x_map
 
+def map2pose_coordinates(map_resolution, origin_x, origin_y, x_map, y_map):
+    x = x_map * map_resolution + origin_x
+    y = y_map * map_resolution + origin_y
+    return x, y
 
 def collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, x, y, theta):
     ####### your code goes here #######
@@ -59,7 +63,10 @@ def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x
 
 def create_prm_traj(map_file):
     prm_traj = []
-    
+    mid_points = np.array([[0,0],
+                           [9.5,4.5],
+                           [0,8.5],
+                           [-13.5,4.5]])
     ####### your code goes here #######
     # TODO: load the map and metadata
     
@@ -69,7 +76,7 @@ def create_prm_traj(map_file):
     
     ##################################
     
-    prm_traj = np.array(prm_traj)
+    prm_traj = np.concatenate(prm_traj, axis=0)
     np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
 
 
