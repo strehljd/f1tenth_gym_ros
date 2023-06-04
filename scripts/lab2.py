@@ -90,7 +90,7 @@ def sample_conrol_inputs(number_of_samples=10):
 
 def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
     ####### your code goes here #######
-    distance = 0.11 # distance between the wheel-axises
+    distance = 0.0381 # distance between the wheel-axises -> this distance is taken from "ego_racecar.xacro"
 
     # Define the system dynamics nonlinear function
     x_new = x + v * np.cos(theta) * dt
