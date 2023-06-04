@@ -90,10 +90,15 @@ def sample_conrol_inputs(number_of_samples=10):
 
 def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
     ####### your code goes here #######
-    
+    distance = 0.11 # distance between the wheel-axises
+
+    # Define the system dynamics nonlinear function
+    x_new = x + v * np.cos(theta) * dt
+    y_new = y + v * np.sin(theta) * dt
+    theta_new = theta + v * np.tan(delta) * 1/distance * dt
     
     ##################################
-    raise NotImplementedError
+    # raise NotImplementedError
     return x_new, y_new, theta_new
 
 
