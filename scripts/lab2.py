@@ -64,9 +64,9 @@ def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x
 def create_prm_traj(map_file):
     prm_traj = []
     mid_points = np.array([[0,0,0],
-                           [9.5,4.5,pi/2],
-                           [0,8.5,pi],
-                           [-13.5,4.5,-pi/2]])
+                           [9.5,4.5,np.pi/2],
+                           [0,8.5,np.pi],
+                           [-13.5,4.5,np.pi/2]])
     map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
     # TODO: load the map and metadata
