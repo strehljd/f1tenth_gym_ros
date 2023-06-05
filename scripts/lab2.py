@@ -83,8 +83,8 @@ def create_prm_traj(map_file):
 
 def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
-    velocity_samples = np.random.uniform(low=0.0, high=1.0, size=number_of_samples)
-    steering_angle_samples =  np.random.uniform(low=0.0, high=1.0, size=number_of_samples)
+    velocity_samples = np.random.uniform(low=-0.5, high=0.5, size=number_of_samples) # 0.5 as max (based on lab1)
+    steering_angle_samples =  np.random.uniform(low=-0.2999998, high=0.2999998, size=number_of_samples) # Generated using left and right commands with the keyboard teleop
 
     samples = np.array([velocity_samples,steering_angle_samples])
 
