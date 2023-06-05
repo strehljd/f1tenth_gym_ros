@@ -83,7 +83,12 @@ def create_prm_traj(map_file):
 
 def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
-    
+    velocity_samples = np.random.uniform(low=0.0, high=1.0, size=number_of_samples)
+    steering_angle_samples =  np.random.uniform(low=0.0, high=1.0, size=number_of_samples)
+
+    samples = np.array([velocity_samples,steering_angle_samples])
+
+    return samples
     ##################################
     raise NotImplementedError
 
