@@ -120,17 +120,27 @@ def create_prm_traj(map_file):
 
 def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
-    
+    velocity_samples = np.random.uniform(low=-0.5, high=0.5, size=number_of_samples) # 0.5 as max (based on lab1)
+    steering_angle_samples =  np.random.uniform(low=-0.2999998, high=0.2999998, size=number_of_samples) # Generated using left and right commands with the keyboard teleop
+
+    samples = np.array([velocity_samples,steering_angle_samples])
+
+    return samples
     ##################################
     raise NotImplementedError
 
 
 def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
     ####### your code goes here #######
-    
+    distance = 0.0381 # distance between the wheel-axises -> this distance is taken from "ego_racecar.xacro"
+
+    # Define the system dynamics nonlinear function
+    x_new = x + v * np.cos(theta) * dt
+    y_new = y + v * np.sin(theta) * dt
+    theta_new = theta + v * np.tan(delta) * 1/distance * dt
     
     ##################################
-    raise NotImplementedError
+    # raise NotImplementedError
     return x_new, y_new, theta_new
 
 
