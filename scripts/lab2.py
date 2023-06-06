@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial import KDTree
 from PIL import Image
-import yaml
+import yaml 
 import os
 import pathlib
 from a_star import A_star
@@ -14,7 +14,7 @@ def load_map_and_metadata(map_file):
     map_arr[map_arr < 220] = 1
     map_arr[map_arr >= 220] = 0
     map_arr = map_arr.astype(bool)
-    map_hight = map_arr.shape[0]
+    map_height = map_arr.shape[0]
     map_width = map_arr.shape[1]
     # TODO: load the map dimentions and resolution from yaml file
     with open(map_file.replace('.png', '.yaml'), 'r') as f:
@@ -27,7 +27,7 @@ def load_map_and_metadata(map_file):
     origin_x = map_origin[0]
     origin_y = map_origin[1]
         
-    return map_arr, map_hight, map_width, map_resolution, origin_x, origin_y
+    return map_arr, map_height, map_width, map_resolution, origin_x, origin_y
 
 
 def pose2map_coordinates(map_resolution, origin_x, origin_y, x, y):
@@ -40,23 +40,59 @@ def map2pose_coordinates(map_resolution, origin_x, origin_y, x_map, y_map):
     y = y_map * map_resolution + origin_y
     return x, y
 
-def collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, x, y, theta):
-    ####### your code goes here #######
+def collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x, y, theta):
+    ####### your code goes here ####### 
+    # offset computation: to take into account the position where the pose of the car is taken: not in the middle. 
+    offset_x = 0.0381/2
+    x = x + np.cos(theta)*offset_x 
+    y = y + np.sin(theta)*offset_x 
+
     # TODO: transform configuration to workspace bounding box
-    
+    half_width = 1/2*np.sqrt(0.3302**2+0.2032**2) #to not take into account theta: hyp of tri
+    x_min = x - half_width
+    x_max = x + half_width
+    half_height = 1/2*np.sqrt(0.3302**2+0.2032**2)
+    y_min = y - half_height 
+    y_max = y + half_height 
+
     # TODO: overlay workspace bounding box on map (creating borders for collision search in the next step)
-    
+    x_min_map, y_min_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_min, y_min)
+    x_max_map, y_max_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_max, y_max)
+
     # TODO: check for collisions by looking inside the bounding box on the map if there are values greater than 0
-    
+    for i in range(x_min_map, x_max_map):
+        for j in range(y_min_map, y_max_map):
+            if map_arr[i,j]==1:
+                return True #detected 
+    return False
     ##################################
     raise NotImplementedError
 
 
-def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=2000, dim=2):
+def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=2000, dim=2):
     ####### your code goes here #######
-    
-    
-    
+    x_min = -17
+    x_max = 17
+    y_min = -7
+    y_max = 15
+    sampled_points = set() #unordered collection of unique elements: each point added to the set is unique
+    while len(sampled_points) < n_points_to_sample:
+        #generate rnd coordinates within the map's bounding box 
+        x_rand = np.random.uniform(x_min, x_max)
+        y_rand = np.random.uniform(y_min, y_max)
+
+        #convert rnd coord to map coord
+        y_map, x_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_rand, y_rand)
+        print(x_map, y_map)
+
+        #add the sampled point if it belongs to the range (boundaries) + if it's safe 
+        if dim == 2: 
+            sampled_points.add((x_rand, y_rand))
+        elif dim == 3: 
+            theta_rand = np.random.uniform(-np.pi,np.pi) 
+            sampled_points.add((x_rand, y_rand, theta_rand))
+    return sampled_points 
+
     ##################################
     raise NotImplementedError
 
@@ -64,10 +100,10 @@ def sample_configuration(map_arr, map_hight, map_width, map_resolution, origin_x
 def create_prm_traj(map_file):
     prm_traj = []
     mid_points = np.array([[0,0,0],
-                           [9.5,4.5,pi/2],
-                           [0,8.5,pi],
-                           [-13.5,4.5,-pi/2]])
-    map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
+                           [9.5,4.5,np.pi/2],
+                           [0,8.5,np.pi],
+                           [-13.5,4.5,-np.pi/2]])
+    map_arr, map_height, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
     # TODO: load the map and metadata
     
@@ -77,9 +113,10 @@ def create_prm_traj(map_file):
     
     ##################################
     
-    prm_traj = np.concatenate(prm_traj, axis=0)
-    np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
-
+    # prm_traj = np.concatenate(prm_traj, axis=0)
+    # np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
+    collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=0, y=0, theta=0)
+    print(collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=0, y=-0.8, theta=-1.57))
 
 def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
@@ -100,9 +137,9 @@ def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
 def create_kino_rrt_traj(map_file):
     kino_rrt_traj = []
     mid_points = np.array([[0,0,0],
-                           [9.5,4.5,pi/2],
-                           [0,8.5,pi],
-                           [-13.5,4.5,-pi/2]])
+                           [9.5,4.5,np.pi/2],
+                           [0,8.5,np.pi],
+                           [-13.5,4.5,-np.pi/2]])
     map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
     # TODO: load the map and metadata
