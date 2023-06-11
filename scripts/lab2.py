@@ -6,6 +6,7 @@ import os
 import pathlib
 from a_star import A_star
 
+from matplotlib import pyplot as plt
 
 def load_map_and_metadata(map_file):
     # load the map from the map_file
@@ -82,8 +83,8 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
         y_rand = np.random.uniform(y_min, y_max)
 
         #convert rnd coord to map coord
-        y_map, x_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_rand, y_rand)
-        print(x_map, y_map)
+        # y_map, x_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_rand, y_rand)
+        # print(x_map, y_map)
 
         #add the sampled point if it belongs to the range (boundaries) + if it's safe 
         if dim == 2: 
@@ -98,6 +99,63 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
 
 
 def create_prm_traj(map_file):
+
+    def has_collsion_edge(point1, point2, number_of_samples):
+        new_point = []
+
+        # sample points along edge
+        for i in np.linspace(0,1,number_of_samples):
+            new_point.append(point1[0] + (point2[0]-point1[0]) * i)
+            new_point.append(point1[1] + (point2[1]-point1[1]) * i)
+            new_point.append(point1[2] + (point2[2]-point1[2]) * i)
+            if (collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
+                return True
+            new_point = []
+    
+        return False
+    
+    # Query for a motion plan
+    def plan(x_start, x_goal):
+
+        # Connect start and goal        
+        connect_point(x_start)
+        connect_point(x_goal)
+
+        # Find shortest path
+        node1 = (0, 0, 0)
+        node2 = (0, 1, 0)
+        node3 = (0, 2, 0)
+        node4 = (0,0.5,0)
+        test_graph = {
+        'nodes': [node1, node2, node3, node4],
+        'edges': [(0,1),(1, 2), (2, 3)],}
+
+        solver = A_star(test_graph)
+        solver.a_star((0,0,0),(0,2,0))
+
+        # Return result 
+        return 0
+
+    def connect_point(point):
+        V.append(point)
+        index_point = len(V)-1
+
+        # Connect point to graph
+        has_found = False
+        i=2
+        while not has_found:
+            distance, index2 = verticies.query(point, k=i, p=2) 
+
+            # collision check of the edege
+            if not has_collsion_edge(point, verticies.data[index2[i-1]], 10):
+                E.append((int(index2[i-1]), index_point)) 
+                has_found = True
+            
+            i += 1
+
+        return 0
+        
+
     prm_traj = []
     mid_points = np.array([[0,0,0],
                            [9.5,4.5,np.pi/2],
@@ -105,18 +163,65 @@ def create_prm_traj(map_file):
                            [-13.5,4.5,-np.pi/2]])
     map_arr, map_height, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
-    # TODO: load the map and metadata
-    
     # TODO: create PRM graph
+    V = []
+    E = []
+    i = 0
+
+    # 2: V <- sample_free(X,n)
+    while i < 100: # until we get 100 valid samples
+        current_sample = list(sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=1, dim=3))[0]
+
+        if not collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=current_sample[0], y=current_sample[1], theta=current_sample[2]):# theta is redundant
+            V.append(current_sample)
+            i+=1
+    # save vertices in kd-tree
+    verticies = KDTree(V)
+
+    index1 = 0
+    for point1 in V:
+        distance, index2 = verticies.query(point1, k=5, p=2) 
+
+        for j in range(1,5):
+            point2 = verticies.data[index2[j]]
+
+            # collision check of the edege
+            if not has_collsion_edge(point1, point2, 10):
+                E.append((index1,int(index2[j]))) 
+        
+        index1+=1
     
     # TODO: create PRM trajectory (x,y) saving it to prm_traj list
+
+    graph = {
+    'nodes': V,
+    'edges': E,
+    # 'costs': {(node1_index, node2_index): cost1, (node2_index, node3_index): cost2, ...}
+    }    
+
+    # Plot graph
+    for point in V:
+        plt.plot(point[0],point[1],marker="o", markersize=5, color="green")
+
+    for edge in E:
+        x1 = V[edge[0]][0]
+        x2 = V[edge[1]][0]
+        y1 = V[edge[0]][1]
+        y2 = V[edge[1]][1]
+        plt.plot([x1,x2],[y1,y2],'k-')
+
+
+    plt.plot(mid_points[0][0],mid_points[0][1],marker="o", markersize=5, color="red", label="start")
+    plt.plot(mid_points[1][0],mid_points[1][1],marker="o", markersize=5, color="red", label="goal")
     
-    ##################################
-    
+    plt.show()
+
+    plan(mid_points[1], mid_points[2])
     # prm_traj = np.concatenate(prm_traj, axis=0)
     # np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
-    collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=0, y=0, theta=0)
-    print(collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=0, y=-0.8, theta=-1.57))
+
+    ##################################
+    
 
 def sample_conrol_inputs(number_of_samples=10):
     ####### your code goes here #######
@@ -151,11 +256,11 @@ def create_kino_rrt_traj(map_file):
                            [0,8.5,np.pi],
                            [-13.5,4.5,-np.pi/2]])
     map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
-    ####### your code goes here #######
-    # TODO: load the map and metadata
-    
+    ####### your code goes here #######    
     # TODO: create RRT graph and find the path saving it to kino_rrt_traj list
     
+
+
     ##################################
     
     kino_rrt_traj = np.array(kino_rrt_traj)
@@ -164,5 +269,5 @@ def create_kino_rrt_traj(map_file):
 
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
-    create_prm_traj(map_file)
+    # create_prm_traj(map_file)
     create_kino_rrt_traj(map_file)
