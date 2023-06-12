@@ -248,7 +248,7 @@ def sample_conrol_inputs(number_of_samples=10):
     velocity_samples = np.random.uniform(low=-0.5, high=0.5, size=number_of_samples) # 0.5 as max (based on lab1)
     steering_angle_samples =  np.random.uniform(low=-0.2999998, high=0.2999998, size=number_of_samples) # Generated using left and right commands with the keyboard teleop
 
-    samples = np.array([velocity_samples,steering_angle_samples])
+    samples = (velocity_samples,steering_angle_samples)
 
     return samples
     ##################################
@@ -367,5 +367,5 @@ def create_kino_rrt_traj(map_file):
 
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
-    create_prm_traj(map_file)
-    #create_kino_rrt_traj(map_file)
+    #create_prm_traj(map_file)
+    create_kino_rrt_traj(map_file)
