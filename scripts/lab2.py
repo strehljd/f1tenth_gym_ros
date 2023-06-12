@@ -26,8 +26,6 @@ def plot(graph,mid_points):
     # Plot mid points
     for goal_point in mid_points:
         plt.plot(goal_point[0],goal_point[1],marker="o", markersize=5, color="red", label="start")
-    
-    plt.show()
 
 
 def load_map_and_metadata(map_file):
@@ -187,24 +185,28 @@ def create_prm_traj(map_file):
         # Return result 
         return planned_path
 
-    def connect_point(point):
-        V.append(point)
-        index_point = len(V)-1
+    def connect_point(prm_graph, point):
+
+        # save vertices in kd-tree
+        verticies = KDTree(prm_graph['nodes'])
+
+        prm_graph['nodes'].append(point)
+        index_point = len(prm_graph['nodes'])-1
 
         # Connect point to graph
         has_found = False
         i=2
         while not has_found:
-            distance, index2 = verticies.query(point, k=i, p=2) 
+            _, index2 = verticies.query(point, k=i, p=2) 
 
             # collision check of the edege
             if not has_collsion_edge(point, verticies.data[index2[i-1]], 10):
-                E.append((int(index2[i-1]), index_point)) 
+                graph['edges'].append((int(index2[i-1]), index_point)) 
                 has_found = True
             
             i += 1
 
-        return 0
+        return prm_graph
         
 
     ### Main ### 
@@ -274,9 +276,51 @@ def create_kino_rrt_traj(map_file):
                            [0,8.5,np.pi],
                            [-13.5,4.5,-np.pi/2]])
     map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
+
+    x_init = mid_points[0]
+
     ####### your code goes here #######    
     # TODO: create RRT graph and find the path saving it to kino_rrt_traj list
+    # Initialize tree
+    graph = {
+    'nodes': [],
+    'edges': []
+    }    
+
+    graph['nodes'].append(np.array([x_init]))
+
+    for i in range(1,100):
+        x_rand = list(sample_configuration(map_arr,map_hight,map_width,map_resolution,origin_x,origin_y,n_points_to_sample=1,dim=3))
+        tree = KDTree(graph['nodes'])
+        _,index_neighbor = tree.query(x_rand,k=1)
+        x_near = graph['nodes'][int(index_neighbor[0])]
+
+        t = 0.5 #skipping sampling np.random.uniform(low=0, high=0.5, size=1) 
+        u = sample_conrol_inputs(1)
+        x_new = forward_simulation_of_kineamtic_model(x_near[0],x_near[1],x_near[2],u[0],u[1],t)
+
+        # sample points along edge
+        number_of_samples = 10
+        new_point = []
+        in_collsion = False
+
+        for i in np.linspace(0,1,number_of_samples):
+            new_point.append(x_near[0] + (x_new[0]-x_near[0]) * i)
+            new_point.append(x_near[1] + (x_new[1]-x_near[1]) * i)
+            new_point.append(x_near[2] + (x_new[2]-x_near[2]) * i)
+            if (collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
+                in_collsion = True
+                break
+
+        if not in_collsion:
+            graph['nodes'] = np.vstack([graph['nodes'], np.array(x_new)])
+            graph['edges'].append((int(index_neighbor[0]), len(graph['nodes'])-1 ))
+
+    plot(graph,mid_points)
+
     
+
+
 
 
     ##################################
@@ -287,5 +331,5 @@ def create_kino_rrt_traj(map_file):
 
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
-    # create_prm_traj(map_file)
-    create_kino_rrt_traj(map_file)
+    create_prm_traj(map_file)
+    #create_kino_rrt_traj(map_file)
