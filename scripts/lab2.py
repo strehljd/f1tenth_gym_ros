@@ -175,26 +175,17 @@ def create_prm_traj(map_file):
         return False
     
     # Query for a motion plan
-    def plan(x_start, x_goal):
+    def plan(prm_graph, x_start, x_goal):
 
-        # Connect start and goal        
-        connect_point(x_start)
-        connect_point(x_goal)
+        # Format graph to datastructure needed for A_Star     
+        a_star_graph = prm_graph
+        a_star_graph['nodes'] = np.array(a_star_graph['nodes'])    
 
-        # Find shortest path
-        node1 = (0, 0, 0)
-        node2 = (0, 1, 0)
-        node3 = (0, 2, 0)
-        node4 = (0,0.5,0)
-        test_graph = {
-        'nodes': np.array([node1, node2, node3, node4]),
-        'edges':[(0,1),(1, 2), (2, 3)]}
-
-        solver = A_star(test_graph)
-        solver.a_star((0,0,0),(0,2,0))
+        solver = A_star(prm_graph)
+        planned_path = solver.a_star(x_start,x_goal)
 
         # Return result 
-        return 0
+        return planned_path
 
     def connect_point(point):
         V.append(point)
@@ -216,6 +207,7 @@ def create_prm_traj(map_file):
         return 0
         
 
+    ### Main ### 
     prm_traj = []
     mid_points = np.array([[0,0,0],
                            [9.5,4.5,np.pi/2],
@@ -223,60 +215,26 @@ def create_prm_traj(map_file):
                            [-13.5,4.5,-np.pi/2]])
     map_arr, map_height, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
     ####### your code goes here #######
-    # TODO: create PRM graph
-    V = []
-    E = []
-    i = 0
 
-    # 2: V <- sample_free(X,n)
-    while i < 100: # until we get 100 valid samples
-        current_sample = list(sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=1, dim=3))[0]
+    # Create PRM graph
+    graph = create_prm_graph(number_of_samples=1500)
+    # plot(graph, mid_points)
 
-        if not collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=current_sample[0], y=current_sample[1], theta=current_sample[2]):# theta is redundant
-            V.append(current_sample)
-            i+=1
-    # save vertices in kd-tree
-    verticies = KDTree(V)
-
-    index1 = 0
-    for point1 in V:
-        distance, index2 = verticies.query(point1, k=5, p=2) 
-
-        for j in range(1,5):
-            point2 = verticies.data[index2[j]]
-
-            # collision check of the edege
-            if not has_collsion_edge(point1, point2, 10):
-                E.append((index1,int(index2[j]))) 
-        
-        index1+=1
-    
-    # TODO: create PRM trajectory (x,y) saving it to prm_traj list
-
-    graph = {
-    'nodes': V,
-    'edges': E,
-    # 'costs': {(node1_index, node2_index): cost1, (node2_index, node3_index): cost2, ...}
-    }    
-
-    # Plot graph
-    for point in V:
-        plt.plot(point[0],point[1],marker="o", markersize=5, color="green")
-
-    for edge in E:
-        x1 = V[edge[0]][0]
-        x2 = V[edge[1]][0]
-        y1 = V[edge[0]][1]
-        y2 = V[edge[1]][1]
-        plt.plot([x1,x2],[y1,y2],'k-')
+    # Plan motions
+    planned_path = plan(graph, mid_points[0],mid_points[1])
+    planned_path.extend(plan(graph, mid_points[1],mid_points[2]))
+    planned_path.extend(plan(graph, mid_points[2],mid_points[3]))
+    planned_path.extend(plan(graph, mid_points[3],mid_points[0]))
 
 
-    plt.plot(mid_points[0][0],mid_points[0][1],marker="o", markersize=5, color="red", label="start")
-    plt.plot(mid_points[1][0],mid_points[1][1],marker="o", markersize=5, color="red", label="goal")
-    
+    plot(graph,mid_points)
+
+    # Plot planned path
+    for point in planned_path:
+        plt.plot(point[0],point[1],marker="x", markersize=5, color="red")
+
     plt.show()
 
-    plan(mid_points[1], mid_points[2])
     # prm_traj = np.concatenate(prm_traj, axis=0)
     # np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
 
