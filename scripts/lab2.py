@@ -237,8 +237,8 @@ def create_prm_traj(map_file):
 
     plt.show()
 
-    # prm_traj = np.concatenate(prm_traj, axis=0)
-    # np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
+    prm_traj = np.concatenate(planned_path, axis=0)
+    np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/prm_traj.npy'), prm_traj)
 
     ##################################
     
