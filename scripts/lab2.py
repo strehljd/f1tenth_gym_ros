@@ -277,55 +277,91 @@ def create_kino_rrt_traj(map_file):
                            [-13.5,4.5,-np.pi/2]])
     map_arr, map_hight, map_width, map_resolution, origin_x, origin_y = load_map_and_metadata(map_file)
 
+
     x_init = mid_points[0]
+    x_goal = mid_points[1]
 
-    ####### your code goes here #######    
-    # TODO: create RRT graph and find the path saving it to kino_rrt_traj list
-    # Initialize tree
-    graph = {
-    'nodes': [],
-    'edges': []
-    }    
+    def plan(x_init, x_goal,goal_region):
 
-    graph['nodes'].append(np.array([x_init]))
+        ####### your code goes here #######    
+        # TODO: create RRT graph and find the path saving it to kino_rrt_traj list
+        # Initialize tree
+        graph = {
+        'nodes': [],
+        'edges': []
+        }    
 
-    for i in range(1,100):
-        x_rand = list(sample_configuration(map_arr,map_hight,map_width,map_resolution,origin_x,origin_y,n_points_to_sample=1,dim=3))
-        tree = KDTree(graph['nodes'])
-        _,index_neighbor = tree.query(x_rand,k=1)
-        x_near = graph['nodes'][int(index_neighbor[0])]
+        # set tree size
+        numper_of_nodes = 25000
 
-        t = 0.5 #skipping sampling np.random.uniform(low=0, high=0.5, size=1) 
-        u = sample_conrol_inputs(1)
-        x_new = forward_simulation_of_kineamtic_model(x_near[0],x_near[1],x_near[2],u[0],u[1],t)
+        graph['nodes'].append(tuple(x_init))
 
-        # sample points along edge
-        number_of_samples = 10
-        new_point = []
-        in_collsion = False
+        for i in range(1,numper_of_nodes):
+            x_rand = list(sample_configuration(map_arr,map_hight,map_width,map_resolution,origin_x,origin_y,n_points_to_sample=1,dim=3))
+            tree = KDTree(graph['nodes'])
+            _,index_neighbor = tree.query(x_rand,k=1)
+            x_near = graph['nodes'][int(index_neighbor[0])]
 
-        for i in np.linspace(0,1,number_of_samples):
-            new_point.append(x_near[0] + (x_new[0]-x_near[0]) * i)
-            new_point.append(x_near[1] + (x_new[1]-x_near[1]) * i)
-            new_point.append(x_near[2] + (x_new[2]-x_near[2]) * i)
-            if (collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
-                in_collsion = True
+            t = 0.5 #skipping sampling np.random.uniform(low=0, high=0.5, size=1) 
+            u = sample_conrol_inputs(1)
+            x, y, theta = forward_simulation_of_kineamtic_model(x_near[0],x_near[1],x_near[2],u[0][0],u[1][0],t)
+            x_new = (x,y,theta)
+
+
+            # sample points along edge
+            number_of_samples = 10
+            new_point = []
+            in_collsion = False
+
+            for i in np.linspace(0,1,number_of_samples):
+                new_point.append(x_near[0] + (x_new[0]-x_near[0]) * i)
+                new_point.append(x_near[1] + (x_new[1]-x_near[1]) * i)
+                new_point.append(x_near[2] + (x_new[2]-x_near[2]) * i)
+                if (collision_check(map_arr, map_hight, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
+                    in_collsion = True
+                    break
+
+            if not in_collsion:
+                graph['nodes'].append(x_new)
+                graph['edges'].append((int(index_neighbor[0]), len(graph['nodes'])-1 ))
+
+            # Check if sample nearby goal 
+            number_of_points = KDTree([i[0:2] for i in graph['nodes']]).query_ball_point(tuple(x_goal)[0:2],r=goal_region, return_length=True)
+            if int(number_of_points) > 0:
+                print("Found a solution after ", i, " iterations.")
                 break
 
-        if not in_collsion:
-            graph['nodes'] = np.vstack([graph['nodes'], np.array(x_new)])
-            graph['edges'].append((int(index_neighbor[0]), len(graph['nodes'])-1 ))
+
+
+        graph['nodes'] = np.array(graph['nodes'])
+
+        solver = A_star(graph)
+        planned_path = solver.a_star(x_init,x_goal)
+        
+        return graph, planned_path
+
+    graph, planned_path = plan(mid_points[0],mid_points[1],0.4)
+    
+    graph, planned_path2 = plan(mid_points[1],mid_points[2],0.4)
+    planned_path.extend(planned_path2)
+
+    graph, planned_path3 = plan(mid_points[2],mid_points[3],0.4)
+    planned_path.extend(planned_path3)
+
+    graph, planned_path4 = plan(mid_points[3],mid_points[0],0.4)
+    planned_path.extend(planned_path4)
+
 
     plot(graph,mid_points)
+    # Plot planned path
+    for point in planned_path:
+        plt.plot(point[0],point[1],marker="x", markersize=5, color="red")
 
+    plt.show()
     
-
-
-
-
     ##################################
     
-    kino_rrt_traj = np.array(kino_rrt_traj)
+    kino_rrt_traj = np.array(planned_path)
     np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/kino_rrt_traj.npy'), kino_rrt_traj)
 
 
