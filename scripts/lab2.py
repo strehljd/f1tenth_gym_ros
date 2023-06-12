@@ -127,8 +127,8 @@ def create_prm_traj(map_file):
         node3 = (0, 2, 0)
         node4 = (0,0.5,0)
         test_graph = {
-        'nodes': [node1, node2, node3, node4],
-        'edges': [(0,1),(1, 2), (2, 3)],}
+        'nodes': np.array([node1, node2, node3, node4]),
+        'edges':[(0,1),(1, 2), (2, 3)]}
 
         solver = A_star(test_graph)
         solver.a_star((0,0,0),(0,2,0))
