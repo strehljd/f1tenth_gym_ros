@@ -8,6 +8,28 @@ from a_star import A_star
 
 from matplotlib import pyplot as plt
 
+# Plotting a graph (consisting of nodes and edges) and goal points
+def plot(graph,mid_points):
+
+    #Plot Nodes
+    for point in graph['nodes']:
+        plt.plot(point[0],point[1],marker="o", markersize=5, color="green")
+
+    # Plot Edges
+    for edge in graph['edges']:
+        x1 = graph['nodes'][edge[0]][0]
+        x2 = graph['nodes'][edge[1]][0]
+        y1 = graph['nodes'][edge[0]][1]
+        y2 = graph['nodes'][edge[1]][1]
+        plt.plot([x1,x2],[y1,y2],'k-')
+
+    # Plot mid points
+    for goal_point in mid_points:
+        plt.plot(goal_point[0],goal_point[1],marker="o", markersize=5, color="red", label="start")
+    
+    plt.show()
+
+
 def load_map_and_metadata(map_file):
     # load the map from the map_file
     map_img = Image.open(map_file).transpose(Image.FLIP_TOP_BOTTOM)
