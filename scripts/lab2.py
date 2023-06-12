@@ -122,6 +122,44 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
 
 def create_prm_traj(map_file):
 
+    def create_prm_graph(number_of_samples):
+        # TODO: create PRM graph
+        V = []
+        E = []
+        i = 0
+
+        # 2: V <- sample_free(X,n)
+        while i < number_of_samples: # until we get 100 valid samples
+            current_sample = list(sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=1, dim=3))[0]
+
+            if not collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=current_sample[0], y=current_sample[1], theta=current_sample[2]):# theta is redundant
+                V.append(current_sample)
+                i+=1
+        # save vertices in kd-tree
+        verticies = KDTree(V)
+
+        index1 = 0
+        for point1 in V:
+            _, index2 = verticies.query(point1, k=5, p=2) 
+
+            for j in range(1,5):
+                point2 = verticies.data[index2[j]]
+
+                # collision check of the edege
+                if not has_collsion_edge(point1, point2, 10):
+                    E.append((index1,int(index2[j]))) 
+            
+            index1+=1
+        
+        # TODO: create PRM trajectory (x,y) saving it to prm_traj list
+
+        graph = {
+        'nodes': V,
+        'edges': E
+        }  
+
+        return graph
+
     def has_collsion_edge(point1, point2, number_of_samples):
         new_point = []
 
