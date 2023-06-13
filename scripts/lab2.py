@@ -181,10 +181,10 @@ def create_prm_traj(map_file):
     def plan(prm_graph, x_start, x_goal):
 
         # Format graph to datastructure needed for A_Star     
-        a_star_graph = prm_graph
+        a_star_graph = copy.deepcopy(prm_graph)
         a_star_graph['nodes'] = np.array(a_star_graph['nodes'])    
 
-        solver = A_star(prm_graph)
+        solver = A_star(a_star_graph)
         planned_path = solver.a_star(x_start,x_goal)
 
         # Return result 
@@ -200,17 +200,16 @@ def create_prm_traj(map_file):
     ####### your code goes here #######
 
     # Create PRM graph
-    graph = create_prm_graph(number_of_samples=1500)
-    # plot(graph, mid_points)
+    prm_generated_graph = create_prm_graph(number_of_samples=2500)
 
     # Plan motions
-    planned_path = plan(graph, mid_points[0],mid_points[1])
-    planned_path.extend(plan(graph, mid_points[1],mid_points[2]))
-    planned_path.extend(plan(graph, mid_points[2],mid_points[3]))
-    planned_path.extend(plan(graph, mid_points[3],mid_points[0]))
+    planned_path = plan(prm_generated_graph, mid_points[0],mid_points[1])
+    planned_path.extend(plan(prm_generated_graph, mid_points[1],mid_points[2]))
+    planned_path.extend(plan(prm_generated_graph, mid_points[2],mid_points[3]))
+    planned_path.extend(plan(prm_generated_graph, mid_points[3],mid_points[0]))
 
 
-    plot(graph,mid_points)
+    plot(prm_generated_graph,mid_points)
 
     # Plot planned path
     for point in planned_path:
