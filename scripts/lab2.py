@@ -141,11 +141,12 @@ def create_prm_traj(map_file):
         # save vertices in kd-tree
         verticies = KDTree(V)
 
+        number_of_neighbors = 5 # number of neighboring vertices to connect
         index1 = 0
         for point1 in V:
-            _, index2 = verticies.query(point1, k=5, p=2) 
+            _, index2 = verticies.query(point1, k=number_of_neighbors, p=2) 
 
-            for j in range(1,5):
+            for j in range(1,number_of_neighbors):
                 point2 = verticies.data[index2[j]]
 
                 # collision check of the edege
