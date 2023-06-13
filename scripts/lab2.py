@@ -121,6 +121,36 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
 
 def create_prm_traj(map_file):
 
+    ## Functons used in PRM planning
+    # Check an edge for collisions
+    def has_collsion_edge(point1, point2, number_of_samples):
+        new_point = []
+
+        # sample points along edge
+        for i in np.linspace(0,1,number_of_samples):
+            new_point.append(point1[0] + (point2[0]-point1[0]) * i)
+            new_point.append(point1[1] + (point2[1]-point1[1]) * i)
+            new_point.append(point1[2] + (point2[2]-point1[2]) * i)
+            if (collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
+                return True
+            new_point = []
+    
+        return False
+    
+    # Query for a motion plan
+    def plan(prm_graph, x_start, x_goal):
+
+        # Format graph to datastructure needed for A_Star     
+        a_star_graph = copy.deepcopy(prm_graph)
+        a_star_graph['nodes'] = np.array(a_star_graph['nodes'])    
+
+        solver = A_star(a_star_graph)
+        planned_path = solver.a_star(x_start,x_goal)
+
+        # Return result 
+        return planned_path
+
+
     # Create PRM graph
     # Input number of samples on the map
     def create_prm_graph(number_of_samples):
@@ -161,35 +191,7 @@ def create_prm_traj(map_file):
 
         return graph
 
-    # Check an edge for collisions
-    def has_collsion_edge(point1, point2, number_of_samples):
-        new_point = []
-
-        # sample points along edge
-        for i in np.linspace(0,1,number_of_samples):
-            new_point.append(point1[0] + (point2[0]-point1[0]) * i)
-            new_point.append(point1[1] + (point2[1]-point1[1]) * i)
-            new_point.append(point1[2] + (point2[2]-point1[2]) * i)
-            if (collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=new_point[0], y=new_point[1], theta=new_point[2])):
-                return True
-            new_point = []
-    
-        return False
-    
-    # Query for a motion plan
-    def plan(prm_graph, x_start, x_goal):
-
-        # Format graph to datastructure needed for A_Star     
-        a_star_graph = copy.deepcopy(prm_graph)
-        a_star_graph['nodes'] = np.array(a_star_graph['nodes'])    
-
-        solver = A_star(a_star_graph)
-        planned_path = solver.a_star(x_start,x_goal)
-
-        # Return result 
-        return planned_path
-
-    ### Main ### 
+    ## Main function
     prm_traj = []
     mid_points = np.array([[0,0,0],
                            [9.5,4.5,np.pi/2],
@@ -346,5 +348,5 @@ def create_kino_rrt_traj(map_file):
 
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
-    #create_prm_traj(map_file)
-    create_kino_rrt_traj(map_file)
+    create_prm_traj(map_file)
+    # create_kino_rrt_traj(map_file)
