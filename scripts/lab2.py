@@ -349,4 +349,4 @@ def create_kino_rrt_traj(map_file):
 if __name__ == "__main__":
     map_file = 'maps/levine.png'
     create_prm_traj(map_file)
-    # create_kino_rrt_traj(map_file)
+    create_kino_rrt_traj(map_file)
