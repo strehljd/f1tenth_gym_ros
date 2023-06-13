@@ -55,7 +55,6 @@ def load_map_and_metadata(map_file):
         
     return map_arr, map_height, map_width, map_resolution, origin_x, origin_y
 
-
 def pose2map_coordinates(map_resolution, origin_x, origin_y, x, y):
     x_map = int((x - origin_x) / map_resolution)
     y_map = int((y - origin_y) / map_resolution)
@@ -73,7 +72,7 @@ def collision_check(map_arr, map_height, map_width, map_resolution, origin_x, or
     x = x + np.cos(theta)*offset_x 
     y = y + np.sin(theta)*offset_x 
 
-    # TODO: transform configuration to workspace bounding box
+    # Transform configuration to workspace bounding box
     half_width = 1/2*np.sqrt(0.3302**2+0.2032**2) #to not take into account theta: hyp of tri
     x_min = x - half_width
     x_max = x + half_width
@@ -81,11 +80,11 @@ def collision_check(map_arr, map_height, map_width, map_resolution, origin_x, or
     y_min = y - half_height 
     y_max = y + half_height 
 
-    # TODO: overlay workspace bounding box on map (creating borders for collision search in the next step)
+    # Overlay workspace bounding box on map (creating borders for collision search in the next step)
     x_min_map, y_min_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_min, y_min)
     x_max_map, y_max_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_max, y_max)
 
-    # TODO: check for collisions by looking inside the bounding box on the map if there are values greater than 0
+    # Check for collisions by looking inside the bounding box on the map if there are values greater than 0
     for i in range(x_min_map, x_max_map):
         for j in range(y_min_map, y_max_map):
             if map_arr[i,j]==1:
@@ -97,6 +96,7 @@ def collision_check(map_arr, map_height, map_width, map_resolution, origin_x, or
 
 def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=2000, dim=2):
     ####### your code goes here #######
+    # We only sample in the relevant region (as hinted).
     x_min = -17
     x_max = 17
     y_min = -7
@@ -106,10 +106,6 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
         #generate rnd coordinates within the map's bounding box 
         x_rand = np.random.uniform(x_min, x_max)
         y_rand = np.random.uniform(y_min, y_max)
-
-        #convert rnd coord to map coord
-        # y_map, x_map = pose2map_coordinates(map_resolution, origin_x, origin_y, x_rand, y_rand)
-        # print(x_map, y_map)
 
         #add the sampled point if it belongs to the range (boundaries) + if it's safe 
         if dim == 2: 
@@ -125,14 +121,15 @@ def sample_configuration(map_arr, map_height, map_width, map_resolution, origin_
 
 def create_prm_traj(map_file):
 
+    # Create PRM graph
+    # Input number of samples on the map
     def create_prm_graph(number_of_samples):
-        # TODO: create PRM graph
         V = []
         E = []
         i = 0
 
         # 2: V <- sample_free(X,n)
-        while i < number_of_samples: # until we get 100 valid samples
+        while i < number_of_samples: # until we get number_of_samples valid samples
             current_sample = list(sample_configuration(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, n_points_to_sample=1, dim=3))[0]
 
             if not collision_check(map_arr, map_height, map_width, map_resolution, origin_x, origin_y, x=current_sample[0], y=current_sample[1], theta=current_sample[2]):# theta is redundant
@@ -155,7 +152,7 @@ def create_prm_traj(map_file):
             
             index1+=1
         
-        # TODO: create PRM trajectory (x,y) saving it to prm_traj list
+        # Create PRM trajectory (x,y) saving it to prm_traj list
 
         graph = {
         'nodes': V,
@@ -164,6 +161,7 @@ def create_prm_traj(map_file):
 
         return graph
 
+    # Check an edge for collisions
     def has_collsion_edge(point1, point2, number_of_samples):
         new_point = []
 
