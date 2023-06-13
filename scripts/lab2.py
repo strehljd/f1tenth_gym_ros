@@ -185,30 +185,6 @@ def create_prm_traj(map_file):
         # Return result 
         return planned_path
 
-    def connect_point(prm_graph, point):
-
-        # save vertices in kd-tree
-        verticies = KDTree(prm_graph['nodes'])
-
-        prm_graph['nodes'].append(point)
-        index_point = len(prm_graph['nodes'])-1
-
-        # Connect point to graph
-        has_found = False
-        i=2
-        while not has_found:
-            _, index2 = verticies.query(point, k=i, p=2) 
-
-            # collision check of the edege
-            if not has_collsion_edge(point, verticies.data[index2[i-1]], 10):
-                graph['edges'].append((int(index2[i-1]), index_point)) 
-                has_found = True
-            
-            i += 1
-
-        return prm_graph
-        
-
     ### Main ### 
     prm_traj = []
     mid_points = np.array([[0,0,0],
