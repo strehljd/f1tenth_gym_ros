@@ -6,9 +6,14 @@ import os
 import pathlib
 from a_star import A_star
 
+## Begin of Our imports
+import copy
 from matplotlib import pyplot as plt
+## End of Our imports
 
+## Begin of Our Functions
 # Plotting a graph (consisting of nodes and edges) and goal points
+# This plotting fucntion is used to create the plots in the report
 def plot(graph,mid_points):
 
     #Plot Nodes
@@ -26,7 +31,7 @@ def plot(graph,mid_points):
     # Plot mid points
     for goal_point in mid_points:
         plt.plot(goal_point[0],goal_point[1],marker="o", markersize=5, color="red", label="start")
-
+## END of Our Functions
 
 def load_map_and_metadata(map_file):
     # load the map from the map_file
