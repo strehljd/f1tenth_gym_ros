@@ -9,6 +9,7 @@ from a_star import A_star
 ## Begin of Our imports
 import copy
 from matplotlib import pyplot as plt
+import time
 ## End of Our imports
 
 ## Begin of Our Functions
@@ -201,6 +202,7 @@ def create_prm_traj(map_file):
     ####### your code goes here #######
 
     # Create PRM graph
+    startTime = time.time()
     prm_generated_graph = create_prm_graph(number_of_samples=2500)
 
     # Plan motions
@@ -208,6 +210,9 @@ def create_prm_traj(map_file):
     planned_path.extend(plan(prm_generated_graph, mid_points[1],mid_points[2]))
     planned_path.extend(plan(prm_generated_graph, mid_points[2],mid_points[3]))
     planned_path.extend(plan(prm_generated_graph, mid_points[3],mid_points[0]))
+
+    executionTime = (time.time() - startTime)
+    print('Execution time in seconds: ' + str(executionTime))
 
 
     plot(prm_generated_graph,mid_points)
@@ -251,6 +256,7 @@ def forward_simulation_of_kineamtic_model(x, y, theta, v, delta, dt=0.5):
 
 
 def create_kino_rrt_traj(map_file):
+
     kino_rrt_traj = []
     mid_points = np.array([[0,0,0],
                            [9.5,4.5,np.pi/2],
@@ -320,7 +326,8 @@ def create_kino_rrt_traj(map_file):
         planned_path = solver.a_star(x_init,x_goal)
         
         return graph, planned_path
-
+    
+    startTime = time.time()
     graph, planned_path = plan(mid_points[0],mid_points[1],0.4)
     
     graph, planned_path2 = plan(mid_points[1],mid_points[2],0.4)
@@ -332,6 +339,8 @@ def create_kino_rrt_traj(map_file):
     graph, planned_path4 = plan(mid_points[3],mid_points[0],0.4)
     planned_path.extend(planned_path4)
 
+    executionTime = (time.time() - startTime)
+    print('Execution time in seconds: ' + str(executionTime))   
 
     plot(graph,mid_points)
     # Plot planned path
