@@ -5,14 +5,18 @@ import yaml
 import os
 import pathlib
 from a_star import A_star
+from numpy import cos, sin, pi
 
 
-def load_map_and_metadata(map_file):
+def load_map_and_metadata(map_file, only_borders=False):
     # load the map from the map_file
     map_img = Image.open(map_file).transpose(Image.FLIP_TOP_BOTTOM)
     map_arr = np.array(map_img, dtype=np.uint8)
-    map_arr[map_arr < 220] = 1
-    map_arr[map_arr >= 220] = 0
+    threshold = 219
+    if only_borders:
+        threshold = 0
+    map_arr[map_arr <= threshold] = 1
+    map_arr[map_arr > threshold] = 0
     map_arr = map_arr.astype(bool)
     map_hight = map_arr.shape[0]
     map_width = map_arr.shape[1]
@@ -111,7 +115,7 @@ def create_kino_rrt_traj(map_file):
     
     ##################################
     
-    kino_rrt_traj = np.array(kino_rrt_traj)
+    kino_rrt_traj = np.array(kino_rrt_traj, axis=0)
     np.save(os.path.join(pathlib.Path(__file__).parent.resolve().parent.resolve(),'resource/kino_rrt_traj.npy'), kino_rrt_traj)
 
 

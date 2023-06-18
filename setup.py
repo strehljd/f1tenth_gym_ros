@@ -17,6 +17,8 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.rviz')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         (os.path.join('share', package_name, 'resource'), glob('resource/*.npy')),
+        (os.path.join('share', package_name, 'maps'), glob('maps/*.png')),
+        (os.path.join('share', package_name, 'maps'), glob('maps/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,7 +30,8 @@ setup(
     entry_points={
         'console_scripts': [
             'gym_bridge = f1tenth_gym_ros.gym_bridge:main',
-            'lab1 = f1tenth_gym_ros.lab1:main'
+            'lab1 = f1tenth_gym_ros.lab1:main',
+            'lab3 = f1tenth_gym_ros.lab3:main'
         ],
     },
 )
