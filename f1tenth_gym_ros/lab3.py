@@ -224,20 +224,32 @@ class Lab3(Node):
         # initialization 
         Sigma_t = np.eye(3) #initialized
         mu =  copy.deepcopy(measured_pose) #initialization of expectation as measured pose --> deep copy to not change the two variables at same time 
-        v = np.sqrt((measured_pose[0]-self.pose[0])**2+(measured_pose[1]-self.pose[1])**2)*(1/self.dt) #initialized on the basis of curr/prev pose 
+        v_t = self.cmd[0]
         # x_t-1 : to initialize? Don't think so
         # matrix definitions
-        G_t = np.array([[1, 0, -v*np.sin(mu[3])], [0, 1, v*np.cos(mu[3])], [0, 0, 1]])
+        G_t = np.array([[1, 0, -v_t*np.sin(mu[3])], [0, 1, v_t*np.cos(mu[3])], [0, 0, 1]])
         H_t = np.eye(3) #constant
         R_t = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
         Q_t = np.eye(3)*0.1 #initial guess --> to Tune 
          
-        
-        # TODO 2: prediction step
-        
-        # TODO 3: calc Kalman gain
-        
-        # TODO 4: update step
+        # prediction step
+        delta_t = self.cmd[1] 
+        # mu_bar_t_1 ????? 
+        # v_t_1      ?????
+        # delta_t_1  ?????
+        mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu[0], mu[1], mu[2], v_t_1, delta_t_1, self.dt)
+        # G_t_1 ???????????
+        # R_t_1 ???????????
+        Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
+        # calc Kalman gain
+        # H_t_1 ???????
+        # Q_t_1 ???????
+        K_t_1 = Sigma_bar_t_1@H_t_1.T@np.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
+        # update step
+        z_t_1 = measured_pose # is t+1???
+        mu_t_1 = mu_bar_t_1+K_t_1@(z_t_1-mu_bar_t_1) #h(..)-> identity 
+        # H_t_1 ???
+        Sigma_t_1 = (np.eye(3)-K_t_1@H_t_1)@Sigma_bar_t_1
         # pose = np.zeros(3)
         # covariance = np.eye(3)*0.1
         raise NotImplementedError()
