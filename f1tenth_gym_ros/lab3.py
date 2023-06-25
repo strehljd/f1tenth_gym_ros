@@ -125,7 +125,7 @@ class Lab3(Node):
         
         self.pose = np.zeros(3)
         self.P = np.eye(3)*0.1
-        
+       
     def scan_callback(self, msg):
         # if self.prev_scan != None and self.curr_scan != None and self.prev_scan.ranges != self.curr_scan.ranges:
         #     print("new scan, who dis?")
@@ -220,24 +220,26 @@ class Lab3(Node):
         measured_covariance = self.laser_covariance 
         
         ########## Implement the EKF here ##########
+        # Get current control 
+        v_t_1 = self.cmd[0]
+        delta_t_1 = self.cmd[0]
+
+        # This works, because it is initialized in the class init.
+        mu_t = self.pose
+        Sigma_t = self.P
 
         # initialization 
-        Sigma_t = np.eye(3) #initialized
-        mu =  copy.deepcopy(measured_pose) #initialization of expectation as measured pose --> deep copy to not change the two variables at same time 
-        v_t = self.cmd[0]
-        # x_t-1 : to initialize? Don't think so
+        H_t_1 = np.eye(3) #constant
         # matrix definitions
-        G_t = np.array([[1, 0, -v_t*np.sin(mu[3])], [0, 1, v_t*np.cos(mu[3])], [0, 0, 1]])
-        H_t = np.eye(3) #constant
-        R_t = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
-        Q_t = np.eye(3)*0.1 #initial guess --> to Tune 
+        R_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
+        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[3])], [0, 1, v_t_1*np.cos(mu_t[3])], [0, 0, 1]])
+        Q_t_1 = np.eye(3)*0.1 #initial guess --> to Tune 
          
         # prediction step
-        delta_t = self.cmd[1] 
         # mu_bar_t_1 ????? 
         # v_t_1      ?????
         # delta_t_1  ?????
-        mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu[0], mu[1], mu[2], v_t_1, delta_t_1, self.dt)
+        mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
         # G_t_1 ???????????
         # R_t_1 ???????????
         Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
