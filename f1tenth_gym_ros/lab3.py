@@ -4,8 +4,8 @@ import sys
 import os
 from PIL import Image
 import yaml
-
 from sensor_msgs.msg import LaserScan
+
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import TransformStamped
@@ -17,7 +17,7 @@ from ament_index_python.packages import get_package_share_directory
 import numpy as np
 from numpy import cos, sin, tan, pi
 from transforms3d import euler
-
+import copy
 
 def load_map_and_metadata(map_file, only_borders=False):
     # load the map from the map_file
@@ -216,11 +216,22 @@ class Lab3(Node):
     
     def timer_callback(self):
         self._scan_to_odom(self.curr_scan)
-        measured_pose = self.laser_pose
-        measured_covariance = self.laser_covariance
+        measured_pose = self.laser_pose #zt 
+        measured_covariance = self.laser_covariance 
         
         ########## Implement the EKF here ##########
-        # TODO 1: matrix definitions
+
+        # initialization 
+        Sigma_t = np.eye(3) #initialized
+        mu =  copy.deepcopy(measured_pose) #initialization of expectation as measured pose --> deep copy to not change the two variables at same time 
+        v = np.sqrt((measured_pose[0]-self.pose[0])**2+(measured_pose[1]-self.pose[1])**2)*(1/self.dt) #initialized on the basis of curr/prev pose 
+        # x_t-1 : to initialize? Don't think so
+        # matrix definitions
+        G_t = np.array([[1, 0, -v*np.sin(mu[3])], [0, 1, v*np.cos(mu[3])], [0, 0, 1]])
+        H_t = np.eye(3) #constant
+        R_t = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
+        Q_t = np.eye(3)*0.1 #initial guess --> to Tune 
+         
         
         # TODO 2: prediction step
         
