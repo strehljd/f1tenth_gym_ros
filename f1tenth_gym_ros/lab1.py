@@ -164,6 +164,8 @@ class Lab1(Node):
         super().__init__('lab1')
         self.get_logger().info("Lab 1 Node has been started")
 
+        self.odom_sub_for_lap = self.create_subscription(Odometry, '/ego_racecar/odom', self.lap_callback, 10)
+        
         # get parameters
         self.controller = self.declare_parameter('controller', controller_type).value
         self.get_logger().info("Controller: " + self.controller)
@@ -172,7 +174,7 @@ class Lab1(Node):
 
         # get the current pose
         self.get_logger().info("Subscribing to Odometry")
-        self.odom_sub = self.create_subscription(Odometry, '/ego_racecar/odom', self.odom_callback, 10)
+        self.odom_sub = self.create_subscription(PoseWithCovarianceStamped, '/ekf_pose', self.odom_callback, 10)
         self.odom_sub # prevent unused variable warning
         
         self.get_logger().info("Publishing to Ackermann Drive")
@@ -245,18 +247,21 @@ class Lab1(Node):
         self.cross_track_accumulated_error += abs(cross_track_error)
         self.along_track_accumulated_error += abs(along_track_error)
         
-    def odom_callback(self, msg):
-        # get the current pose
+    def lap_callback(self, msg):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
-        q = msg.pose.pose.orientation
-        _, _, yaw = euler.quat2euler([q.w, q.x, q.y, q.z])
         
         if not self.moved and (x < -1 and y > 3):
             self.moved = True
         elif self.moved and x > 0:
             raise EndLap
-            
+    
+    def odom_callback(self, msg):
+        # get the current pose
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        q = msg.pose.pose.orientation
+        _, _, yaw = euler.quat2euler([q.w, q.x, q.y, q.z]) 
         
         self.pose = np.array([x, y, yaw])
         
