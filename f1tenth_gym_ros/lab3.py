@@ -224,37 +224,31 @@ class Lab3(Node):
         v_t_1 = self.cmd[0]
         delta_t_1 = self.cmd[0]
 
+        # initialization
         # This works, because it is initialized in the class init.
         mu_t = self.pose
         Sigma_t = self.P
-
-        # initialization 
+         # matrix definitions
         H_t_1 = np.eye(3) #constant
-        # matrix definitions
         R_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
         G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[3])], [0, 1, v_t_1*np.cos(mu_t[3])], [0, 0, 1]])
         Q_t_1 = np.eye(3)*0.1 #initial guess --> to Tune 
          
-        # prediction step
-        # mu_bar_t_1 ????? 
-        # v_t_1      ?????
-        # delta_t_1  ?????
+        # prediction step 
         mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
-        # G_t_1 ???????????
-        # R_t_1 ???????????
         Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
         # calc Kalman gain
-        # H_t_1 ???????
-        # Q_t_1 ???????
         K_t_1 = Sigma_bar_t_1@H_t_1.T@np.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
+        print('K_t_1', K_t_1)
         # update step
-        z_t_1 = measured_pose # is t+1???
+        z_t_1 = measured_pose # is t+1?
         mu_t_1 = mu_bar_t_1+K_t_1@(z_t_1-mu_bar_t_1) #h(..)-> identity 
-        # H_t_1 ???
+        print('mu_t_1', mu_t_1)
         Sigma_t_1 = (np.eye(3)-K_t_1@H_t_1)@Sigma_bar_t_1
-        # pose = np.zeros(3)
-        # covariance = np.eye(3)*0.1
-        raise NotImplementedError()
+        print('Sigma_t_1', Sigma_t_1)
+        pose = mu_t_1
+        covariance = Sigma_t_1
+        #raise NotImplementedError()
         ########## End of EKF ##########
         self.pose = pose
         self.P = covariance
