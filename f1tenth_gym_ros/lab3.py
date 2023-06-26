@@ -238,7 +238,7 @@ class Lab3(Node):
         mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
         Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
         # calc Kalman gain
-        K_t_1 = Sigma_bar_t_1@H_t_1.T@np.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
+        K_t_1 = Sigma_bar_t_1@H_t_1.T@np.linalg.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
         print('K_t_1', K_t_1)
         # update step
         z_t_1 = measured_pose # is t+1?
