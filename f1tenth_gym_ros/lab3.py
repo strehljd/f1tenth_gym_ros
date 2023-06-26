@@ -231,7 +231,7 @@ class Lab3(Node):
          # matrix definitions
         H_t_1 = np.eye(3) #constant
         R_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
-        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[3])], [0, 1, v_t_1*np.cos(mu_t[3])], [0, 0, 1]])
+        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])], [0, 1, v_t_1*np.cos(mu_t[2])], [0, 0, 1]])
         Q_t_1 = np.eye(3)*0.1 #initial guess --> to Tune 
          
         # prediction step 
