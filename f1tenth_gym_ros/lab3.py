@@ -17,7 +17,12 @@ from ament_index_python.packages import get_package_share_directory
 import numpy as np
 from numpy import cos, sin, tan, pi
 from transforms3d import euler
+
+
+#our imports
+import datetime
 import copy
+import time
 
 def load_map_and_metadata(map_file, only_borders=False):
     # load the map from the map_file
@@ -110,9 +115,9 @@ class Lab3(Node):
         
         # create timer to run the EKF every 10ms
         self.get_logger().info("Creating Timer")
-        self.timer = self.create_timer(0.01, self.timer_callback)
+        self.timer = self.create_timer(1.5, self.timer_callback)
         self.timer # prevent unused variable warning
-        self.dt = 0.01
+        self.dt = 1.5
         
         # load map and metadata
         self.get_logger().info("Loading Map")
@@ -215,7 +220,13 @@ class Lab3(Node):
         return np.sum(self.map_arr[map_p_ys[valid_idxs], map_p_xs[valid_idxs]]) 
     
     def timer_callback(self):
+
+
+        start = time.time()
+
         self._scan_to_odom(self.curr_scan)
+        end = time.time()
+        print(end - start)
         measured_pose = self.laser_pose #zt 
         measured_covariance = self.laser_covariance 
         
@@ -230,25 +241,31 @@ class Lab3(Node):
         Sigma_t = self.P
          # matrix definitions
         H_t_1 = np.eye(3) #constant
-        R_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
+        R_t_1 = np.eye(3)*0.4 #initial guess --> to Tune 
+        print("R_t_1")
+        print(R_t_1)
         G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])], [0, 1, v_t_1*np.cos(mu_t[2])], [0, 0, 1]])
-        Q_t_1 = np.eye(3)*0.1 #initial guess --> to Tune 
+        Q_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
          
         # prediction step 
         mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
         Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
         # calc Kalman gain
         K_t_1 = Sigma_bar_t_1@H_t_1.T@np.linalg.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
-        print('K_t_1', K_t_1)
+        print('K_t_1')
+        print(K_t_1)
         # update step
         z_t_1 = measured_pose # is t+1?
         mu_t_1 = mu_bar_t_1+K_t_1@(z_t_1-mu_bar_t_1) #h(..)-> identity 
-        print('mu_t_1', mu_t_1)
+        print('mu_t_1')
+        print(mu_t_1)
         Sigma_t_1 = (np.eye(3)-K_t_1@H_t_1)@Sigma_bar_t_1
-        print('Sigma_t_1', Sigma_t_1)
+        print('Sigma_t_1')
+        print(Sigma_t_1)
         pose = mu_t_1
         covariance = Sigma_t_1
         #raise NotImplementedError()
+        print(self.get_clock().now())
         ########## End of EKF ##########
         self.pose = pose
         self.P = covariance
@@ -272,6 +289,7 @@ class Lab3(Node):
         msg.pose.covariance[35] = self.P[2,2]
         
         self.ekf_pose_pub.publish(msg)
+
         
 
 def main(args=None):
