@@ -4,8 +4,8 @@ import sys
 import os
 from PIL import Image
 import yaml
-from sensor_msgs.msg import LaserScan
 
+from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import TransformStamped
@@ -18,11 +18,6 @@ import numpy as np
 from numpy import cos, sin, tan, pi
 from transforms3d import euler
 
-
-#our imports
-import datetime
-import copy
-import time
 
 def load_map_and_metadata(map_file, only_borders=False):
     # load the map from the map_file
@@ -115,9 +110,10 @@ class Lab3(Node):
         
         # create timer to run the EKF every 10ms
         self.get_logger().info("Creating Timer")
-        self.timer = self.create_timer(1.5, self.timer_callback)
-        self.timer # prevent unused variable warning
         self.dt = 1.5
+        self.timer = self.create_timer(self.dt, self.timer_callback)
+        
+        self.timer # prevent unused variable warning
         
         # load map and metadata
         self.get_logger().info("Loading Map")
@@ -130,7 +126,7 @@ class Lab3(Node):
         
         self.pose = np.zeros(3)
         self.P = np.eye(3)*0.1
-       
+        
     def scan_callback(self, msg):
         # if self.prev_scan != None and self.curr_scan != None and self.prev_scan.ranges != self.curr_scan.ranges:
         #     print("new scan, who dis?")
@@ -220,52 +216,74 @@ class Lab3(Node):
         return np.sum(self.map_arr[map_p_ys[valid_idxs], map_p_xs[valid_idxs]]) 
     
     def timer_callback(self):
-
-
-        start = time.time()
-
         self._scan_to_odom(self.curr_scan)
-        end = time.time()
-        print(end - start)
-        measured_pose = self.laser_pose #zt 
-        measured_covariance = self.laser_covariance 
-        
-        ########## Implement the EKF here ##########
-        # Get current control 
-        v_t_1 = self.cmd[0]
-        delta_t_1 = self.cmd[0]
+        measured_pose = self.laser_pose
+        measured_covariance = self.laser_covariance
+        speed = self.cmd[0] 
+        steering = self.cmd[1]
 
-        # initialization
-        # This works, because it is initialized in the class init.
-        mu_t = self.pose
-        Sigma_t = self.P
-         # matrix definitions
-        H_t_1 = np.eye(3) #constant
-        R_t_1 = np.eye(3)*0.4 #initial guess --> to Tune 
-        print("R_t_1")
-        print(R_t_1)
-        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])], [0, 1, v_t_1*np.cos(mu_t[2])], [0, 0, 1]])
-        Q_t_1 = measured_covariance #covariance matrix of measurement noise: assumption, usually it is tuned 
-         
-        # prediction step 
-        mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
-        Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
-        # calc Kalman gain
-        K_t_1 = Sigma_bar_t_1@H_t_1.T@np.linalg.pinv(H_t_1@Sigma_bar_t_1@H_t_1.T+Q_t_1)
-        print('K_t_1')
-        print(K_t_1)
-        # update step
-        z_t_1 = measured_pose # is t+1?
-        mu_t_1 = mu_bar_t_1+K_t_1@(z_t_1-mu_bar_t_1) #h(..)-> identity 
-        print('mu_t_1')
-        print(mu_t_1)
-        Sigma_t_1 = (np.eye(3)-K_t_1@H_t_1)@Sigma_bar_t_1
-        print('Sigma_t_1')
-        print(Sigma_t_1)
-        pose = mu_t_1
-        covariance = Sigma_t_1
-        #raise NotImplementedError()
-        print(self.get_clock().now())
+        ########## Implement the EKF here ##########
+        # TODO 1: matrix definitions
+        # Jacobian of Dynamics
+        G = np.array([[1,0,-speed*self.dt*np.sin(self.pose[2])],
+                      [0,1, speed*self.dt*np.cos(self.pose[2])],
+                      [0,0, 1]])
+        
+        # Jacobian of Observations
+        H = np.array([[1,0,0],
+                      [0,1,0],
+                      [0,0,1]])
+        
+        # Covariance of Observation
+        Q = measured_covariance
+        
+        # Covariance of Dynamics
+        R = np.array([[0.1,0,0],
+                      [0,0.1,0],
+                      [0,0,0.1]])
+
+
+        
+        # TODO 2: prediction step
+        x_new, y_new, theta_new = forward_simulation_of_kineamtic_model(self.pose[0], self.pose[1], self.pose[2], speed, steering, self.dt)
+
+        #pose_bel = np.array([[x_new],
+        #                     [y_new],
+        #                     [theta_new]])
+        pose_bel = np.zeros(3)
+        pose_bel[0] = x_new
+        pose_bel[1] = y_new
+        pose_bel[2] = theta_new
+        #print("dimposebel: {}".format(pose_bel.shape))
+        
+        cov_bel = G @ self.P @ G.T + R # Sigma= self.P
+        #print("dimcovbel: {}".format(cov_bel.shape))
+
+        
+        # TODO 3: calc Kalman gain
+
+        z = measured_pose
+        #print("dimz: {}".format(z.shape))
+        #print("z: {}".format(z))
+
+        h = np.eye(3,3)@pose_bel
+        #print("dimh: {}".format(h.shape))
+        #print("h: {}".format(h))
+
+        K = cov_bel @ H.T @ np.linalg.pinv(H @ cov_bel @ H.T + Q)
+        #print("dimK: {}".format(K.shape))
+
+        # TODO 4: update step
+
+        pose = pose_bel + K @ (z - h)
+        #print("pose: {}".format(pose))
+        covariance = ( np.eye(3) - K@H )@cov_bel
+
+        # pose = np.zeros(3)
+        # covariance = np.eye(3)*0.1
+        # raise NotImplementedError()
+
+
         ########## End of EKF ##########
         self.pose = pose
         self.P = covariance
@@ -289,7 +307,6 @@ class Lab3(Node):
         msg.pose.covariance[35] = self.P[2,2]
         
         self.ekf_pose_pub.publish(msg)
-
         
 
 def main(args=None):
