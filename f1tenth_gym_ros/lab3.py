@@ -243,7 +243,7 @@ class Lab3(Node):
         Sigma_t = self.P
          # matrix definitions
         H_t_1 = np.eye(3) #constant
-        R_t_1 = np.eye(3)*0.4 #initial guess --> to Tune 
+        R_t_1 = np.eye(3)*0.05 #initial guess --> to Tune 
         print("R_t_1")
         print(R_t_1)
         G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])], [0, 1, v_t_1*np.cos(mu_t[2])], [0, 0, 1]])
