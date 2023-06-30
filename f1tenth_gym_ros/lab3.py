@@ -10,6 +10,7 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Quaternion
+from geometry_msgs.msg import Twist
 from ackermann_msgs.msg import AckermannDriveStamped
 
 from ament_index_python.packages import get_package_share_directory
@@ -104,7 +105,7 @@ class Lab3(Node):
         
         # subscribe to the drive topic for the commands
         self.get_logger().info("Subscribing to Ackermann Drive")
-        self.cmd_sub = self.create_subscription(AckermannDriveStamped, '/drive', self.cmd_callback, 10)
+        self.cmd_sub = self.create_subscription(Twist, '/cmd_vel', self.cmd_callback, 10)
         self.cmd_sub # prevent unused variable warning
         self.cmd = np.zeros(2)
         
@@ -138,8 +139,19 @@ class Lab3(Node):
         self.curr_scan = msg
         
     def cmd_callback(self, msg):
-        self.cmd[0] = msg.drive.speed
-        self.cmd[1] = msg.drive.steering_angle
+        # Calcualtion accorinding to teleop calculations in F1TENTH simulation. See line 211 https://github.com/f1tenth/f1tenth_gym_ros/blob/910789ad9029839abda0d7b6d66f46945fe5cef0/f1tenth_gym_ros/gym_bridge.py#L211.
+        self.cmd[0] = msg.linear.x
+
+        if msg.angular.z > 0.0:
+            self.cmd[1] = 0.3
+        elif msg.angular.z < 0.0:
+            self.cmd[1]  = -0.3
+        else:
+            self.cmd[1]  = 0
+
+
+        # self.cmd[0] = msg.drive.speed
+        # self.cmd[1] = msg.drive.steering_angle
         
     def odom_callback(self, msg):
         self.tmp_pose[0] = msg.pose.pose.position.x
