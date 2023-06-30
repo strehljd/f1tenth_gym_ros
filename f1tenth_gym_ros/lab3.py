@@ -233,7 +233,9 @@ class Lab3(Node):
         ########## Implement the EKF here ##########
         # Get current control 
         v_t_1 = self.cmd[0]
-        delta_t_1 = self.cmd[0]
+        delta_t_1 = self.cmd[1]
+
+        print("u[0]: ",v_t_1, "u[1]: ", delta_t_1 )
 
         # initialization
         # This works, because it is initialized in the class init.
