@@ -236,11 +236,6 @@ class Lab3(Node):
         measured_covariance = self.laser_covariance 
         
         ########## Implement the EKF here ##########
-        # matrix definitions
-        H_t_1 = np.eye(3)
-        R_t_1 = np.eye(3)*0.05 # this value is tuned using the keyborad teleop. May require tuning for using with a controller. 
-        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])*self.dt], [0, 1, v_t_1*np.cos(mu_t[2])*self.dt], [0, 0, 1]])
-        
         # get current values
         ## control values
         v_t_1 = self.cmd[0]
@@ -251,6 +246,11 @@ class Lab3(Node):
         ## last estimation
         mu_t = self.pose
         Sigma_t = self.P
+
+        # matrix definitions
+        H_t_1 = np.eye(3)
+        R_t_1 = np.eye(3)*0.05 # this value is tuned using the keyborad teleop. May require tuning for using with a controller. 
+        G_t_1 = np.array([[1, 0, -v_t_1*np.sin(mu_t[2])*self.dt], [0, 1, v_t_1*np.cos(mu_t[2])*self.dt], [0, 0, 1]])
          
         # prediction step 
         mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
@@ -266,6 +266,12 @@ class Lab3(Node):
         # Set pose and covariance to current estimation
         pose = mu_t_1
         covariance = Sigma_t_1
+
+        print("Estimation at time ", self.get_clock().now())
+        print("Pose:")
+        print(mu_t_1)
+        print("Covariance (mu_bar):")
+        print(Sigma_t_1)
 
         ########## End of EKF ##########
         self.pose = pose
