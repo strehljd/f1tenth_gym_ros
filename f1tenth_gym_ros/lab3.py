@@ -232,6 +232,7 @@ class Lab3(Node):
         return np.sum(self.map_arr[map_p_ys[valid_idxs], map_p_xs[valid_idxs]]) 
     
     def timer_callback(self):
+        self._scan_to_odom(self.curr_scan)
         measured_pose = self.laser_pose #zt 
         measured_covariance = self.laser_covariance 
         
@@ -255,6 +256,7 @@ class Lab3(Node):
         # prediction step 
         mu_bar_t_1 = forward_simulation_of_kineamtic_model(mu_t[0], mu_t[1], mu_t[2], v_t_1, delta_t_1, self.dt)
         Sigma_bar_t_1 = G_t_1@Sigma_t*G_t_1.T+R_t_1
+
         
         # update step
         ## Kalman gain
@@ -270,7 +272,8 @@ class Lab3(Node):
         print("Estimation at time ", self.get_clock().now())
         print("Pose:")
         print(mu_t_1)
-        print("Covariance (mu_bar):")
+    
+        print("Covariance:")
         print(Sigma_t_1)
 
         ########## End of EKF ##########
